@@ -6,9 +6,6 @@ echo `date +"%T"` Sync wda script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 
-#increase this value for slow mac machines (during this pause WDA should be able to start)
-wda_start_timeout=20
-
 while read -r line
 do
         udid=`echo $line | cut -d '|' -f ${udid_position}`
@@ -32,8 +29,6 @@ do
         if [[ -n "$device" &&  -z "$wda" ]]; then
 		echo "Starting wda: ${udid}"
                 ${selenium_home}/startNodeWDA.sh $udid
-		# added pause to avoid startup by next sync
-		sleep ${wda_start_timeout}
         elif [[ -z "$device" &&  -n "$wda" ]]; then
 		echo "WDA  will be stopped: ${udid}"
 		echo device: $device
