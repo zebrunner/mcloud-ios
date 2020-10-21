@@ -28,11 +28,9 @@ do
 
         if [[ -n "$device" &&  -z "$wda" ]]; then
 		echo "Starting wda: ${udid}"
-                ${selenium_home}/startNodeWDA.sh $udid
+                ${selenium_home}/startNodeWDA.sh $udid &
         elif [[ -z "$device" &&  -n "$wda" ]]; then
-		echo "WDA  will be stopped: ${udid}"
-		echo device: $device
-	        echo wda: $wda
+		echo "WDA should be stopped automatically: ${udid}"
         else
                 echo "Nothing to do for ${udid} - device name : ${name}"
         fi

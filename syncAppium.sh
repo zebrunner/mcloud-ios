@@ -6,9 +6,6 @@ echo `date +"%T"` Sync Appium script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 
-#stop operation is pretty heavy, so we double check wda status after this pause
-check_wda_status_pause=10
-
 while read -r line
 do
  	udid=`echo $line | cut -d '|' -f ${udid_position}`
@@ -30,18 +27,14 @@ do
 
 	wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
         if [[ -n "$appium" && -z "$wda" ]]; then
-                sleep ${check_wda_status_pause}
-		wda_status=`/usr/bin/curl http://${device_ip}:${wda_port}/status --connect-timeout 5 | grep success`
-                if [[ -z "${wda_status}" ]]; then
-			echo "Stopping Appium process. Wda is crashed or not started but Appium process exists. ${udid} device name : ${name}"
-                	${selenium_home}/stopNodeAppium.sh $udid
-                	continue
-                fi
+        	echo "Stopping Appium process. Wda is crashed or not started but Appium process exists. ${udid} device name : ${name}"
+        	${selenium_home}/stopNodeAppium.sh $udid &
+                continue
         fi
 
         if [[ -n "$device" && -n "$wda" && -z "$appium" ]]; then
 		echo "Starting appium node: ${udid} - device name : ${name}"
-                ${selenium_home}/startNodeAppium.sh $udid
+                ${selenium_home}/startNodeAppium.sh $udid &
         elif [[ -z "$device" &&  -n "$appium" ]]; then
  		#double check if device really empty
                 device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
@@ -49,7 +42,7 @@ do
                         echo "Appium will be stopped: ${udid} - device name : ${name}"
                         echo device: $device
                         echo appium: $appium
-                        ${selenium_home}/stopNodeAppium.sh $udid
+                        ${selenium_home}/stopNodeAppium.sh $udid &
                 fi
         else
         	echo "Nothing to do for ${udid} - device name : ${name}"
