@@ -1,4 +1,5 @@
 nohup.out
+backup/*
 logs/*
 configs/*
 metadata/*
