@@ -5,13 +5,15 @@ devicePattern=$1
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-. ${BASEDIR}/set_selenium_properties.sh
-. ${BASEDIR}/getDeviceArgs.sh $devicePattern
+. ${BASEDIR}/configs/getDeviceArgs.sh $devicePattern
 
 if [ "${device_ip}" == "" ]; then
   echo "Unable to detect ${name} device ip address! No sense to start Appium!" >> "${BASEDIR}/logs/${name}_appium.log"
   exit -1
 fi
+
+echo "Starting appium: ${udid} - device name : ${name}"
+
 
 ${BASEDIR}/configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
 

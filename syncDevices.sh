@@ -6,7 +6,7 @@
 # Generated metafile could be used by other sync scripts to start/stop services for each iOS device
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. ${BASEDIR}/set_selenium_properties.sh
+. ${BASEDIR}/configs/set_properties.sh
 
 echo `date +"%T"` Sync Devices script started
 

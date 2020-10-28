@@ -2,9 +2,9 @@
 
 udid=$1
 
-BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. ${BASEDIR}/set_selenium_properties.sh
-. ${BASEDIR}/getDeviceArgs.sh $udid
+BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
+#. ${BASEDIR}/configs/set_properties.sh
+. ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
 
 DEVICENAME=${name}

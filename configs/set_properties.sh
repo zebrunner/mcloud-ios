@@ -1,6 +1,6 @@
 #!/bin/bash
 
-BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 
 # iSTF settings
 export PROVIDER_NAME=iMac-Developer.local
@@ -22,11 +22,10 @@ export STF_PRIVATE_NODE_HOST=192.168.88.96
 export automation_name=XCUITest
 export appium_home=/usr/local/lib/node_modules/appium
 
-export selenium_home=${BASEDIR}
-export devices=${selenium_home}/devices.txt
-export configFolder=${selenium_home}/configs
-export logFolder=${selenium_home}/logs
-export metaDataFolder=${selenium_home}/metaData
+export devices=${BASEDIR}/devices.txt
+export configFolder=${BASEDIR}/configs
+export logFolder=${BASEDIR}/logs
+export metaDataFolder=${BASEDIR}/metaData
 
 #general vars declaration to parse devices.txt correctly
 export name_position=1

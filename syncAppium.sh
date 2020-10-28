@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. ${BASEDIR}/set_selenium_properties.sh
+. ${BASEDIR}/configs/set_properties.sh
 
 echo `date +"%T"` Sync Appium script started
 
@@ -15,7 +15,7 @@ do
             continue
         fi
         simulator=`echo $line | grep simul`
-        . ${selenium_home}/getDeviceArgs.sh $udid
+        . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
 	appium=`ps -ef | grep $appium_home/build/lib/main.js  | grep $udid`
 
@@ -28,13 +28,12 @@ do
 	wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
         if [[ -n "$appium" && -z "$wda" ]]; then
         	echo "Stopping Appium process. Wda is crashed or not started but Appium process exists. ${udid} device name : ${name}"
-        	${selenium_home}/stopAppium.sh $udid &
+        	${BASEDIR}/stopAppium.sh $udid &
                 continue
         fi
 
         if [[ -n "$device" && -n "$wda" && -z "$appium" ]]; then
-		echo "Starting appium: ${udid} - device name : ${name}"
-                ${selenium_home}/startAppium.sh $udid &
+                ${BASEDIR}/startAppium.sh $udid &
         elif [[ -z "$device" &&  -n "$appium" ]]; then
  		#double check if device really empty
                 device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
@@ -42,7 +41,7 @@ do
                         echo "Appium will be stopped: ${udid} - device name : ${name}"
                         echo device: $device
                         echo appium: $appium
-                        ${selenium_home}/stopAppium.sh $udid &
+                        ${BASEDIR}/stopAppium.sh $udid &
                 fi
         fi
 done < ${devices}

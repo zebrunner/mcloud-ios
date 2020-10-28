@@ -1,6 +1,6 @@
 #!/bin/bash
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. ${BASEDIR}/set_selenium_properties.sh
+. ${BASEDIR}/configs/set_properties.sh
 
 echo `date +"%T"` Sync WDA script started
 
@@ -24,7 +24,7 @@ do
             continue
         fi
         simulator=`echo $line | grep simul`
-       . ${selenium_home}/getDeviceArgs.sh $udid
+       . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
         #wda check is only for approach with syncWda.sh and usePrebuildWda=true
         wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
@@ -40,7 +40,7 @@ do
 		# simultaneous WDA launch is not supported by Xcode!
 		# error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked 
 		# Possibly there are two concurrent builds running in the same filesystem location.
-                ${selenium_home}/startWDA.sh $udid
+                ${BASEDIR}/startWDA.sh $udid
         elif [[ -z "$device" &&  -n "$wda" ]]; then
 		echo "WDA should be stopped automatically: ${udid}"
         fi

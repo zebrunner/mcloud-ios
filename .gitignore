@@ -1,6 +1,7 @@
 nohup.out
 backup/*
 logs/*
-metadata/*.json
+metaData/*.txt
+metaData/*.json
 .DS_Store
 *.bak

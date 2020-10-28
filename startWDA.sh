@@ -5,8 +5,7 @@ devicePattern=$1
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-. ${BASEDIR}/set_selenium_properties.sh
-. ${selenium_home}/getDeviceArgs.sh $devicePattern
+. ${BASEDIR}/configs/getDeviceArgs.sh $devicePattern
 
 verifyStartup() {
 

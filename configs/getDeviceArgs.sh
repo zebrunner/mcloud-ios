@@ -6,8 +6,8 @@ if [ "$devicePattern" == "" ]; then
 	exit -1
 fi
 
-BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. ${BASEDIR}/set_selenium_properties.sh
+BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
+. ${BASEDIR}/configs/set_properties.sh
 
 name=`cat ${devices} | grep "$devicePattern" | cut -d '|' -f ${name_position}`
 export name=$(echo $name)
