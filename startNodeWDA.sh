@@ -18,8 +18,12 @@ verifyStartup() {
   ##         $3 - Counter. (Startup verification max duration) = (Counter) x (10 seconds)
 
   STARTUP_LOG=$1
-  STARTUP_INDICATOR=$2
-  STARTUP_COUNTER=$3
+  STARTUP_COUNTER=$2
+
+  STARTUP_INDICATOR="ServerURLHere->"
+  FAIL_INDICATOR=" TEST FAILED "
+  UNSUPPORTED_INDICATOR="Unable to find a destination matching the provided destination specifier"
+
 
   COUNTER=0
   while [  $COUNTER -lt $STARTUP_COUNTER ];
@@ -27,35 +31,50 @@ verifyStartup() {
     sleep 1
     if [[ -r ${STARTUP_LOG} ]]
     then
+      # verify that WDA is supported for device/simulator
+      grep "${UNSUPPORTED_INDICATOR}" ${STARTUP_LOG} > /dev/null
+      if [[ $? = 0 ]]
+      then
+        echo "ERROR! WDA does not support ${name}!"
+        retrun -1
+      fi
+
+      # verify that WDA failed
+      grep "${FAIL_INDICATOR}" ${STARTUP_LOG} > /dev/null
+      if [[ $? = 0 ]]
+      then
+        echo "ERROR! WDA failed on ${name} in ${COUNTER} seconds!"
+        return -1
+      fi
+
       grep "${STARTUP_INDICATOR}" ${STARTUP_LOG} > /dev/null
       if [[ $? = 0 ]]
       then
-        echo device ${name} was connected successfully in ${COUNTER} seconds...
-        COUNTER=${STARTUP_COUNTER}
+        echo "WDA started successfully on ${name} within ${COUNTER} seconds."
+        return 0
       else
-        echo ${name} device wasn\'t connected yet. waiting 1 sec...
+        echo "WDA not started yet on ${name}. waiting ${COUNTER} sec..."
       fi
+
     else
-      echo Cannot read from ${STARTUP_LOG}. File hasn\'t appeared yet.
+      echo "ERROR! Cannot read from ${STARTUP_LOG}. File has not appeared yet!"
     fi
     let COUNTER=COUNTER+1
   done
 
-  if [[ $COUNTER = ${STARTUP_COUNTER} ]]
-  then
-    echo WDA was not started successfully for ${name} device after ${STARTUP_COUNTER} seconds!
-    return 2
-  fi
-  return 0
+  echo "ERROR! WDA not started on ${name} within ${STARTUP_COUNTER} seconds!"
+  return -1
 }
 
+
+#backup current wda log to be able to analyze failures if any
+mv ${BASEDIR}/logs/${name}_wda.log ${BASEDIR}/logs/backup/${name}_wda_`date +"%T"`.log
 
 echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
 nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${appium_home}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "${BASEDIR}/logs/${name}_wda.log" 2>&1 &
 
-verifyStartup "${BASEDIR}/logs/${name}_wda.log" "ServerURLHere->" 120 >> "${BASEDIR}/logs/${name}_wda.log"
-
+verifyStartup "${BASEDIR}/logs/${name}_wda.log" 120 >> "${BASEDIR}/logs/${name}_wda.log"
 if [[ $? = 0 ]]; then
   # WDA was started successfully!
   # parse ip address from log file line:
