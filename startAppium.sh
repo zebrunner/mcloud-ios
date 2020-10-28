@@ -6,19 +6,19 @@ devicePattern=$1
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 . ${BASEDIR}/set_selenium_properties.sh
-. ${selenium_home}/getDeviceArgs.sh $devicePattern
+. ${BASEDIR}/getDeviceArgs.sh $devicePattern
 
 if [ "${device_ip}" == "" ]; then
   echo "Unable to detect ${name} device ip address! No sense to start Appium!" >> "${BASEDIR}/logs/${name}_appium.log"
   exit -1
 fi
 
-${selenium_home}/configgen.sh $udid > configs/$udid.json
-
+${BASEDIR}/configs/configgen.sh $udid > ${BASEDIR}/configs/$udid.json
 
 newWDA=false
 #TODO: investigate if tablet should be registered separately, what about tvOS
 
+#TODO: parametrize node detection if possible
 export PATH=/Users/build/.nvm/versions/node/v13.13.0/bin:$PATH
 
 nohup node ${appium_home}/build/lib/main.js -p ${appium_port} --log-timestamp --device-name "${name}" --automation-name=XCUItest --udid $udid \
