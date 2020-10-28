@@ -6,8 +6,8 @@ echo `date +"%T"` Sync WDA script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 
-# use-case when on-demand manual startNodeWDA.sh is running!
-isRunning=`ps -ef | grep startNodeWDA.sh | grep -v grep`
+# use-case when on-demand manual startWDA.sh is running!
+isRunning=`ps -ef | grep startWDA.sh | grep -v grep`
 #echo isRunning: $isRunning
 
 if [[ -n "$isRunning" ]]; then
@@ -40,7 +40,7 @@ do
 		# simultaneous WDA launch is not supported by Xcode!
 		# error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked 
 		# Possibly there are two concurrent builds running in the same filesystem location.
-                ${selenium_home}/startNodeWDA.sh $udid
+                ${selenium_home}/startWDA.sh $udid
         elif [[ -z "$device" &&  -n "$wda" ]]; then
 		echo "WDA should be stopped automatically: ${udid}"
         fi

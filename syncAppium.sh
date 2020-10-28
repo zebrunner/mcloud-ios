@@ -28,13 +28,13 @@ do
 	wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
         if [[ -n "$appium" && -z "$wda" ]]; then
         	echo "Stopping Appium process. Wda is crashed or not started but Appium process exists. ${udid} device name : ${name}"
-        	${selenium_home}/stopNodeAppium.sh $udid &
+        	${selenium_home}/stopAppium.sh $udid &
                 continue
         fi
 
         if [[ -n "$device" && -n "$wda" && -z "$appium" ]]; then
-		echo "Starting appium node: ${udid} - device name : ${name}"
-                ${selenium_home}/startNodeAppium.sh $udid &
+		echo "Starting appium: ${udid} - device name : ${name}"
+                ${selenium_home}/startAppium.sh $udid &
         elif [[ -z "$device" &&  -n "$appium" ]]; then
  		#double check if device really empty
                 device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
@@ -42,7 +42,7 @@ do
                         echo "Appium will be stopped: ${udid} - device name : ${name}"
                         echo device: $device
                         echo appium: $appium
-                        ${selenium_home}/stopNodeAppium.sh $udid &
+                        ${selenium_home}/stopAppium.sh $udid &
                 fi
         fi
 done < ${devices}

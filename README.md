@@ -41,9 +41,9 @@ cd mcloud
 ```
 * Update devices.txt registering all whitelisted devices in it
 ```
-# DEVICE NAME    | TYPE      | VERSION| UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | STF_APPIUM | DEVICE IP
-iPhone_7         | phone     | 12.3.1 | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701   |  7710   | 192.168.88.250
-Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711   |  7720   | 192.168.88.251
+# DEVICE NAME    | TYPE      | VERSION| UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | STF_APPIUM 
+iPhone_7         | phone     | 12.3.1 | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701   |  7710   
+Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711   |  7720   
 ```
 Note: For simulators DEVICE_IP is actual host ip address.
 
@@ -67,17 +67,17 @@ Note: For simulators DEVICE_IP is actual host ip address.
 ```
 cd mcloud
 
-./startNodeWDA.sh <udid>
+./startWDA.sh <udid>
 tail -f ./logs/<deviceName>_wda.log
 
-./startNodeAppium.sh <udid>
+./startAppium.sh <udid>
 tail -f ./logs/<deviceName>_appium.log
 
-./startNodeSTF.sh <udid>
+./startSTF.sh <udid>
 tail -f ./logs/<deviceName>_stf.log
 ```  
 
-Note: we temporary hardcoded in startNodeSTF.sh extra items like STF_HOST, path to STF cli, current host ip. Before startup update onto the valid values
+Note: we temporary hardcoded in startSTF.sh extra items like STF_HOST, path to STF cli, current host ip. Before startup update onto the valid values
 
 ### Setup sync scripts via Launch Agents for Devices, Appium, WDA and STF services
   * Devices agent setup
