@@ -8,7 +8,7 @@
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 . ${BASEDIR}/set_selenium_properties.sh
 
-echo `date +"%T"` Sync connected physical iOS devices script started
+echo `date +"%T"` Sync Devices script started
 
 devicesFile=${metaDataFolder}/connectedDevices.txt
 /usr/local/bin/ios-deploy -c -t 3 > ${devicesFile}

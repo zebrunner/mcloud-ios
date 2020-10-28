@@ -2,7 +2,7 @@
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 . ${BASEDIR}/set_selenium_properties.sh
 
-echo `date +"%T"` Script started
+echo `date +"%T"` Sync STF script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 

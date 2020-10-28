@@ -9,10 +9,10 @@
                         <string>/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin</string>
                 </dict>
                 <key>Label</key>
-                <string>com.syncSTF</string>
+                <string>com.zebrunner.cloud.stf</string>
                 <key>ProgramArguments</key>
                 <array>
-                        <string>/Users/build/tools/mcloud/syncSTF.sh</string>
+                        <string>./syncSTF.sh</string>
                 </array>
                 <key>WorkingDirectory</key>
                 <string>/Users/build/tools/mcloud</string>
@@ -33,9 +33,9 @@
                 <integer>10</integer>
 
                 <key>StandardErrorPath</key>
-                <string>/Users/build/tools/mcloud/logs/agent_stf.log</string>
+                <string>logs/agents.log</string>
                 <key>StandardOutPath</key>
-                <string>/Users/build/tools/mcloud/logs/agent_stf.log</string>
+                <string>logs/agents.log</string>
         </dict>
 </plist>
 

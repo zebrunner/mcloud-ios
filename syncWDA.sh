@@ -2,13 +2,16 @@
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 . ${BASEDIR}/set_selenium_properties.sh
 
-echo `date +"%T"` Sync wda script started
+echo `date +"%T"` Sync WDA script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 
-isStarting=`ps -ef | grep startNodeWDA.sh`
-if [[ -n "$isStarting" ]]; then
-  echo WebDriverAgent is being starting already. Skip sync up operation!
+# use-case when on-demand manual startNodeWDA.sh is running!
+isRunning=`ps -ef | grep startNodeWDA.sh | grep -v grep`
+#echo isRunning: $isRunning
+
+if [[ -n "$isRunning" ]]; then
+  echo WebDriverAgent is being starting already. Skip sync operation!
   exit 0
 fi
 
@@ -34,10 +37,11 @@ do
 
         if [[ -n "$device" &&  -z "$wda" ]]; then
 		echo "Starting wda: ${udid}"
-		# simultaneous wda launch corrupt WDA agents and restart services constantly!
-                ${selenium_home}/startNodeWDA.sh $udid &
+		# simultaneous WDA launch is not supported by Xcode!
+		# error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked 
+		# Possibly there are two concurrent builds running in the same filesystem location.
+                ${selenium_home}/startNodeWDA.sh $udid
         elif [[ -z "$device" &&  -n "$wda" ]]; then
 		echo "WDA should be stopped automatically: ${udid}"
         fi
-
 done < ${devices}

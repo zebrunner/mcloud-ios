@@ -9,10 +9,10 @@
 			<string>/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin</string>
 		</dict>
 		<key>Label</key>
-		<string>com.syncWDANodes</string>
+		<string>com.zebrunner.mcloud.wda</string>
 		<key>ProgramArguments</key>
 		<array>
-                	<string>/Users/build/tools/mcloud/syncWDA.sh</string>
+                	<string>./syncWDA.sh</string>
         	</array>
 		<key>WorkingDirectory</key>
 		<string>/Users/build/tools/mcloud</string>
@@ -30,9 +30,9 @@
  		<integer>10</integer>
 
 		<key>StandardErrorPath</key>
-		<string>/Users/build/tools/mcloud/logs/agent_wda.log</string>
+		<string>logs/agents.log</string>
 		<key>StandardOutPath</key>
-		<string>/Users/build/tools/mcloud/logs/agent_wda.log</string>
+		<string>logs/agents.log</string>
 	</dict>
 </plist>
 
