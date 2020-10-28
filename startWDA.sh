@@ -68,7 +68,9 @@ verifyStartup() {
 
 
 #backup current wda log to be able to analyze failures if any
-mv ${BASEDIR}/logs/${name}_wda.log ${BASEDIR}/backup/${name}_wda_`date +"%T"`.log
+if [[ -f ${BASEDIR}/logs/${name}_wda.log ]]; then
+  mv ${BASEDIR}/logs/${name}_wda.log ${BASEDIR}/backup/${name}_wda_`date +"%T"`.log
+fi
 
 echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
 nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${appium_home}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \

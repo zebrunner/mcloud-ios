@@ -42,8 +42,6 @@ export stf_appium_port=$(echo $stf_appium_port)
 device_ip=""
 if [[ -f "${metaDataFolder}/${udid}.txt" ]]; then
   device_ip=`cat ${metaDataFolder}/${udid}.txt`
-else
-  echo "getDeviceArgs.sh: unable to detect device_ip for ${name}!"
 fi
 export device_ip=$(echo $device_ip)
 
