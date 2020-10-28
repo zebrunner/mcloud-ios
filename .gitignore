@@ -4,3 +4,4 @@ logs/*
 configs/*
 metadata/*
 .DS_Store
+*.bak
