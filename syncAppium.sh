@@ -44,8 +44,5 @@ do
                         echo appium: $appium
                         ${selenium_home}/stopNodeAppium.sh $udid &
                 fi
-        else
-        	echo "Nothing to do for ${udid} - device name : ${name}"
         fi
 done < ${devices}
-echo `date +"%T"` Script finished

@@ -6,6 +6,12 @@ echo `date +"%T"` Sync wda script started
 
 logFile=${metaDataFolder}/connectedDevices.txt
 
+isStarting=`ps -ef | grep startNodeWDA.sh`
+if [[ -n "$isStarting" ]]; then
+  echo WebDriverAgent is being starting already. Skip sync up operation!
+  exit 0
+fi
+
 while read -r line
 do
         udid=`echo $line | cut -d '|' -f ${udid_position}`
@@ -28,12 +34,10 @@ do
 
         if [[ -n "$device" &&  -z "$wda" ]]; then
 		echo "Starting wda: ${udid}"
+		# simultaneous wda launch corrupt WDA agents and restart services constantly!
                 ${selenium_home}/startNodeWDA.sh $udid &
         elif [[ -z "$device" &&  -n "$wda" ]]; then
 		echo "WDA should be stopped automatically: ${udid}"
-        else
-                echo "Nothing to do for ${udid} - device name : ${name}"
         fi
 
 done < ${devices}
-echo `date +"%T"` Script finished

@@ -45,8 +45,5 @@ do
                 	echo stf: $stf
             		${selenium_home}/stopNodeSTF.sh $udid &
         	fi
-        else
-        	echo "Nothing to do for ${udid} device name ${name}"
         fi
 done < ${devices}
-echo `date +"%T"` Script finished
