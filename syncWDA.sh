@@ -36,7 +36,6 @@ do
         fi
 
         if [[ -n "$device" &&  -z "$wda" ]]; then
-		echo "Starting wda: ${udid}"
 		# simultaneous WDA launch is not supported by Xcode!
 		# error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked 
 		# Possibly there are two concurrent builds running in the same filesystem location.
