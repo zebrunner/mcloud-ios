@@ -6,7 +6,7 @@ Zebrunner Device Farm (iOS slave)
 ## Contents
 * [Software prerequisites](#software-prerequisites)
 * [iSTF components setup](#istf-components-setup)
-* [iOS-slave mcloud setup](#ios-slave-mcloud-setup)
+* [iOS-slave setup](#ios-slave-setup)
 * [Setup sync scripts via Launch Agents for Appium, WDA and STF services](#setup-sync-scripts-via-launch-agents-for-appium-wda-and-stf-services)
 * [License](#license)
 
@@ -31,11 +31,11 @@ npm link
 ```
 * 
 
-## iOS-slave MCloud setup
-* Clone mcloud ios-slave branch
+## iOS-slave setup
+* Clone this repo
 ```
-git clone --single-branch --branch ios-slave https://github.com/qaprosoft/mcloud
-cd mcloud
+git clone https://github.com/zebrunner/mcloud-ios.git
+cd mcloud-ios
 ```
 * Update devices.txt registering all whitelisted devices in it
 ```
@@ -63,7 +63,7 @@ Note: For simulators DEVICE_IP is actual host ip address.
 
 * Verify that Appium/WDA and STF services can be launched successfully
 ```
-cd mcloud
+cd mcloud-ios
 
 ./startWDA.sh <udid>
 tail -f ./logs/<deviceName>_wda.log
