@@ -29,7 +29,6 @@ cd stf
 npm install
 npm link
 ```
-* 
 
 ## iOS-slave setup
 * Clone this repo
