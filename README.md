@@ -33,7 +33,7 @@ npm link
 ## iOS-slave setup
 * Clone this repo
 ```
-git clone https://github.com/zebrunner/mcloud-ios.git
+git clone --single-branch --branch master https://github.com/zebrunner/mcloud-ios.git
 cd mcloud-ios
 ```
 * Update devices.txt registering all whitelisted devices in it
