@@ -1,7 +1,5 @@
-MCloud iOS-slave instance
+Zebrunner Device Farm (iOS slave)
 ==================
-
-MCloud is dockerized QA infrastructure for remote web access to physical devices (Android and iOS). Is is fully integrated into the [qps-infra](http://www.qps-infra.io) ecosystem and can be used for manual so automation usage.
 
 * It is built on the top of [OpenSTF](https://github.com/openstf) with supporting iOS devices remote control.
 
