@@ -35,7 +35,7 @@ verifyStartup() {
       if [[ $? = 0 ]]
       then
         echo "ERROR! WDA does not support ${name}!"
-        retrun -1
+        return -1
       fi
 
       # verify that WDA failed
@@ -73,6 +73,7 @@ fi
 
 echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
 nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${appium_home}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
+      -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "${BASEDIR}/logs/${name}_wda.log" 2>&1 &
 
 verifyStartup "${BASEDIR}/logs/${name}_wda.log" 120 >> "${BASEDIR}/logs/${name}_wda.log"
