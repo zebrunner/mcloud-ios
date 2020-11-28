@@ -15,7 +15,7 @@
                         <string>./syncSTF.sh</string>
                 </array>
                 <key>WorkingDirectory</key>
-                <string>/Users/build/tools/mcloud</string>
+                <string>/Users/build/tools/mcloud-ios</string>
                 <key>UserName</key>
                 <string>build</string>
                 <key>GroupName</key>
