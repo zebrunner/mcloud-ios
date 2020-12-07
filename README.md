@@ -24,7 +24,7 @@ brew install rethinkdb graphicsmagick zeromq protobuf yasm pkg-config
 ```
 * Clone and build iSTF from sources
 ```
-git clone --single-branch --branch master https://github.com/qaprosoft/stf
+git clone --single-branch --branch master https://github.com/zebrunner/stf.git
 cd stf
 npm install
 npm link
