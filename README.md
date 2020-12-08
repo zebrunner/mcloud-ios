@@ -24,7 +24,7 @@ brew install rethinkdb graphicsmagick zeromq protobuf yasm pkg-config
 ```
 * Clone and build iSTF from sources
 ```
-git clone --single-branch --branch master https://github.com/qaprosoft/stf
+git clone --single-branch --branch master https://github.com/zebrunner/stf.git
 cd stf
 npm install
 npm link
@@ -78,8 +78,8 @@ Note: we temporary hardcoded in startSTF.sh extra items like STF_HOST, path to S
 
 ### Setup sync scripts via Launch Agents for Devices, Appium, WDA and STF services
   * Devices agent setup
-  * Appium agent setup
   * WDA agent setup
+  * Appium agent setup
   * STF agent setup
   
 Note: you can use [launchd](https://www.launchd.info/) to start/stop required services for connected/disconnected device(s).  details can be found in [README](https://github.com/zebrunner/mcloud-ios/blob/master/LaunchAgents/README.txt)

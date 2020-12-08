@@ -5,3 +5,4 @@ metaData/*.txt
 metaData/*.json
 .DS_Store
 *.bak
+tmp/*
