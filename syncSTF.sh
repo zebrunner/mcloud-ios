@@ -4,7 +4,8 @@ BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 echo `date +"%T"` Sync STF script started
 
-logFile=${metaDataFolder}/connectedDevices.txt
+connectedDevices=${metaDataFolder}/connectedDevices.txt
+connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
 while read -r line
 do
@@ -16,20 +17,22 @@ do
         fi
        . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
-        simulator=`echo $line | grep simul`
+        physical=`cat ${connectedDevices} | grep $udid`
+        simulator=`cat ${connectedSimulators} | grep $udid`
 
         if [[ -n "$simulator" ]]; then
-#                device=${name}
+        	# https://github.com/zebrunner/stf/issues/168 
 		# simulators temporary unavailable in iSTF
-		continue
-        else
-                device=`cat ${logFile} | grep $udid`
+        	continue
         fi
+
+        device="$physical$simulator"
+        #echo device: $device
 
         stf=`ps -eaf | grep ${udid} | grep 'ios-device' | grep -v grep`
 	wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
         if [[ -n "$stf" && -z "$wda" ]]; then
-                echo "Stopping STF process. Wda is crashed or not started but STF process exists. ${udid} device name : ${name}"
+                echo "Stopping STF process. WDA is crashed or not started but STF process exists. ${udid} device name : ${name}"
                 ${BASEDIR}/stopSTF.sh $udid &
                 continue
         fi
@@ -37,6 +40,7 @@ do
         if [[ -n "$device" && -n "$wda" && -z "$stf" ]]; then
                 ${BASEDIR}/startSTF.sh $udid &
         elif [[ -z "$device" && -n "$stf" ]]; then
+                #double check for the case when connctedDevices.txt in sync and empty
 		device_status=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
 		if [[ -z "${device_status}" ]]; then
 			echo "The iSTF ios-device will be stopped: ${udid} device name : ${name}"

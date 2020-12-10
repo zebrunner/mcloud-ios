@@ -1,10 +1,9 @@
 #!/bin/bash
+
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 . ${BASEDIR}/configs/set_properties.sh
 
 echo `date +"%T"` Sync WDA script started
-
-logFile=${metaDataFolder}/connectedDevices.txt
 
 # use-case when on-demand manual startWDA.sh is running!
 isRunning=`ps -ef | grep startWDA.sh | grep -v grep`
@@ -15,6 +14,11 @@ if [[ -n "$isRunning" ]]; then
   exit 0
 fi
 
+
+connectedDevices=${metaDataFolder}/connectedDevices.txt
+connectedSimulators=${metaDataFolder}/connectedSimulators.txt
+
+# verify one by one connected devices and authorized simulators
 while read -r line
 do
         udid=`echo $line | cut -d '|' -f ${udid_position}`
@@ -23,24 +27,23 @@ do
         if [ "$udid" = "UDID" ]; then
             continue
         fi
-        simulator=`echo $line | grep simul`
        . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
         #wda check is only for approach with syncWda.sh and usePrebuildWda=true
         wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
 
-        if [[ -n "$simulator" ]]; then
-                device=${name}
-        else
-                device=`cat ${logFile} | grep $udid`
-        fi
+        physical=`cat ${connectedDevices} | grep $udid`
+        simulator=`cat ${connectedSimulators} | grep $udid`
+	device="$physical$simulator"
+	#echo device: $device
 
         if [[ -n "$device" &&  -z "$wda" ]]; then
-		# simultaneous WDA launch is not supported by Xcode!
-		# error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked 
-		# Possibly there are two concurrent builds running in the same filesystem location.
+                # simultaneous WDA launch is not supported by Xcode!
+                # error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked
+                # Possibly there are two concurrent builds running in the same filesystem location.
                 ${BASEDIR}/startWDA.sh $udid
         elif [[ -z "$device" &&  -n "$wda" ]]; then
-		echo "WDA should be stopped automatically: ${udid}"
+                echo "WDA should be stopped automatically: ${udid}"
         fi
 done < ${devices}
+
