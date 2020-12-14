@@ -88,8 +88,6 @@ if [[ $? = 0 ]]; then
   # put IP address into the metadata file
   echo "${ip}" > ${metaDataFolder}/${udid}.txt
 
-  # fix for null sessionId: https://discuss.appium.io/t/sessionid-null/32175/2
-  curl --silent --location --request POST "http://${ip}:${wda_port}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities":{}}'
 else 
   # WDA is not started successfully!
   rm ${metaDataFolder}/${udid}.ip
