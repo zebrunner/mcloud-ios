@@ -38,9 +38,9 @@ cd mcloud-ios
 ```
 * Update devices.txt registering all whitelisted devices in it
 ```
-# DEVICE NAME    | TYPE      | VERSION| UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | STF_APPIUM 
-iPhone_7         | phone     | 12.3.1 | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701      |  7710   
-Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711      |  7720   
+# DEVICE NAME    | TYPE      | VERSION| UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | PROXY_APPIUM
+iPhone_7         | phone     | 12.3.1 | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701      |  7702   
+Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711      |  7712   
 ```
   > Put whitelisted simulators data into devices.txt too
 
@@ -50,12 +50,11 @@ Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 * Update configs/set_properties.sh. Specify actual values for 
   * STF_PUBLIC_HOST
   * STF_PRIVATE_HOST
+  * STF_NODE_HOST
   * WEBSOCKET_PROTOCOL
   * WEB_PROTOCOL
   * hubHost
   * hubPort
-  * STF_PUBLIC_NODE_HOST
-  * STF_PRIVATE_NODE_HOST
 
 * Sign WebDriverAgent using your Dev Apple certificate and install WDA on each device manually
   * Open in XCode /usr/loca/lib/node_modules/appium/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj

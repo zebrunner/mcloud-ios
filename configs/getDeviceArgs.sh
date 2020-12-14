@@ -36,8 +36,8 @@ export iwdp_port=$(echo $iwdp_port)
 stf_screen_port=`cat ${devices} | grep "$devicePattern" | cut -d '|' -f ${stf_screen_port_position}`
 export stf_screen_port=$(echo $stf_screen_port)
 
-stf_appium_port=`cat ${devices} | grep "$devicePattern" | cut -d '|' -f ${stf_appium_port_position}`
-export stf_appium_port=$(echo $stf_appium_port)
+proxy_appium_port=`cat ${devices} | grep "$devicePattern" | cut -d '|' -f ${proxy_appium_port_position}`
+export proxy_appium_port=$(echo $proxy_appium_port)
 
 device_ip=""
 if [[ -f "${metaDataFolder}/${udid}.txt" ]]; then
