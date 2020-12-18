@@ -20,9 +20,6 @@ ${BASEDIR}/configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
 newWDA=false
 #TODO: investigate if tablet should be registered separately, what about tvOS
 
-#TODO: parametrize node detection if possible
-export PATH=/Users/build/.nvm/versions/node/v14.15.1/bin:$PATH
-
 nohup node ${appium_home}/build/lib/main.js -p ${appium_port} --log-timestamp --device-name "${name}" --automation-name=XCUItest --udid $udid \
   --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
   --default-capabilities \

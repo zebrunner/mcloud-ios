@@ -13,7 +13,10 @@ if [ "${device_ip}" == "" ]; then
 fi
 
 echo "Starting iSTF ios-device: ${udid} device name : ${name}"
-export PATH=/Users/build/.nvm/versions/node/v8.17.0/bin:$PATH
+
+# Specify pretty old node v8.17.0 as current due to the STF dependency
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+nvm use v8
 
 #TODO: parametrize hardcoded path to stf cli
 nohup node /Users/build/tools/stf/lib/cli ios-device --serial ${udid} \
