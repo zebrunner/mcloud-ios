@@ -90,7 +90,7 @@ if [[ $? = 0 ]]; then
 
 else 
   # WDA is not started successfully!
-  rm ${metaDataFolder}/${udid}.ip
+  rm ${metaDataFolder}/${udid}.txt
 fi
 
 

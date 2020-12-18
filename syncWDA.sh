@@ -43,6 +43,12 @@ do
     # Possibly there are two concurrent builds running in the same filesystem location.
     ${BASEDIR}/startWDA.sh $udid
   elif [[ -z "$device" &&  -n "$wda" ]]; then
-    echo "WDA should be stopped automatically: ${udid}"
+    #double check for the case when connctedDevices.txt in sync and empty
+    device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+    if [[ -z "${device}" ]]; then
+      echo "WDA will be stopped: ${udid} - device name : ${name}"
+      ${BASEDIR}/stopWDA.sh $udid &
+    fi
+
   fi
 done < ${devices}
