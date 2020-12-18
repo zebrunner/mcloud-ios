@@ -19,13 +19,11 @@ export PATH=/Users/build/.nvm/versions/node/v8.17.0/bin:$PATH
 nohup node /Users/build/tools/stf/lib/cli ios-device --serial ${udid} \
 	--device-name ${name} \
 	--device-type ${type} \
-        --provider ${PROVIDER_NAME} --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_PUBLIC_HOST} --group-timeout 3600 \
-        --storage-url ${WEB_PROTOCOL}://${STF_PUBLIC_HOST}/ --screen-jpeg-quality 40 --screen-ping-interval 30000 \
+	--provider ${PROVIDER_NAME} --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_PUBLIC_HOST} --group-timeout 3600 \
+	--storage-url ${WEB_PROTOCOL}://${STF_PUBLIC_HOST}/ --screen-jpeg-quality 40 --screen-ping-interval 30000 \
 	--screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_PUBLIC_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
-        --boot-complete-timeout 60000 --mute-master never \
-        --connect-app-dealer tcp://${STF_PRIVATE_HOST}:7160 --connect-dev-dealer tcp://${STF_PRIVATE_HOST}:7260 \
-        --wda-host ${device_ip} \
-        --wda-port ${wda_port} \
-        --appium-port ${appium_port} \
-        --proxy-appium-port ${proxy_appium_port} \
+	--boot-complete-timeout 60000 --mute-master never \
+	--connect-app-dealer tcp://${STF_PRIVATE_HOST}:7160 --connect-dev-dealer tcp://${STF_PRIVATE_HOST}:7260 \
+	--wda-host ${device_ip} --wda-port ${wda_port} \
+	--appium-host ${STF_NODE_HOST} --appium-port ${appium_port} --proxy-appium-port ${proxy_appium_port} \
 	--connect-sub tcp://${STF_PRIVATE_HOST}:7250 --connect-push tcp://${STF_PRIVATE_HOST}:7270 --no-cleanup >> "${BASEDIR}/logs/${name}_stf.log" 2>&1 &
