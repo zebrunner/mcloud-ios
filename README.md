@@ -14,13 +14,15 @@ Zebrunner Device Farm (iOS slave)
 * Install XCode 11.2
 * Make sure you have latest Appium compatible node version installed (13.11.0+) or install it using [nvm](http://npm.github.io/installation-setup-docs/installing/using-a-node-version-manager.html).
 * Install Appium 1.19.0+
+* Install [nvm](https://github.com/nvm-sh/nvm) version manager
+* Install v8.17.0 and latest node using nvm
+  > 8.x node is still required by OpenSTF!
+
 
 ## iSTF components setup
-* Install node 8.17.0 using nvm. Make sure it is used by default for below operations!
-  > 8.x node is still required by OpenSTF!
 * Install additional packages
 ```
-brew install rethinkdb graphicsmagick zeromq protobuf yasm pkg-config
+brew install graphicsmagick zeromq protobuf yasm pkg-config
 ```
 * Clone and build iSTF from sources
 ```
@@ -75,8 +77,6 @@ tail -f ./logs/<deviceName>_appium.log
 ./startSTF.sh <udid>
 tail -f ./logs/<deviceName>_stf.log
 ```  
-
-  > Some data still hardcoded in startSTF.sh and startAppium.sh like path to STF cli, path to Appium etc. Before startup update onto the valid values
 
 ### Setup sync scripts via Launch Agents for Devices, Appium, WDA and STF services
   * Devices agent setup

@@ -15,11 +15,17 @@ fi
 echo "Starting iSTF ios-device: ${udid} device name : ${name}"
 
 # Specify pretty old node v8.17.0 as current due to the STF dependency
+export NVM_DIR="$HOME/.nvm"
 [ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-nvm use v8
+nvm use v8.17.0
 
-#TODO: parametrize hardcoded path to stf cli
-nohup node /Users/build/tools/stf/lib/cli ios-device --serial ${udid} \
+STF_BIN=`which stf`
+#echo STF_BIN: $STF_BIN
+
+STF_CLI=`echo "${STF_BIN//bin\/stf/lib/node_modules/@devicefarmer/stf/lib/cli}"`
+echo STF_CLI: $STF_CLI
+
+nohup node $STF_CLI ios-device --serial ${udid} \
 	--device-name ${name} \
 	--device-type ${type} \
 	--provider ${PROVIDER_NAME} --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_PUBLIC_HOST} --group-timeout 3600 \
