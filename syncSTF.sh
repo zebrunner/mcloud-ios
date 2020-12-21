@@ -30,14 +30,14 @@ do
   #echo device: $device
 
   stf=`ps -eaf | grep ${udid} | grep 'ios-device' | grep -v grep`
-  wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
-  if [[ -n "$stf" && -z "$wda" ]]; then
-    echo "Stopping STF process. WDA is crashed or not started but STF process exists. ${udid} device name : ${name}"
+  wda=${metaDataFolder}/ip_${udid}.txt
+  if [[ -n "$stf" && ! -f "$wda" ]]; then
+    echo "Stopping STF process as no WebDriverAgent process detected. ${udid} device name : ${name}"
     ${BASEDIR}/stopSTF.sh $udid &
     continue
   fi
 
-  if [[ -n "$device" && -n "$wda" && -z "$stf" ]]; then
+  if [[ -n "$device" && -f "$wda" && -z "$stf" ]]; then
     ${BASEDIR}/startSTF.sh $udid &
   elif [[ -z "$device" && -n "$stf" ]]; then
     #double check for the case when connctedDevices.txt in sync and empty

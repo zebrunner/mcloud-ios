@@ -86,11 +86,11 @@ if [[ $? = 0 ]]; then
   # remove forward slashes
   ip="${ip//\//}"
   # put IP address into the metadata file
-  echo "${ip}" > ${metaDataFolder}/${udid}.txt
+  echo "${ip}" > ${metaDataFolder}/ip_${udid}.txt
 
 else 
   # WDA is not started successfully!
-  rm ${metaDataFolder}/${udid}.txt
+  rm -f ${metaDataFolder}/ip_${udid}.txt
 fi
 
 

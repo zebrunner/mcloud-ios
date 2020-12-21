@@ -23,6 +23,7 @@ if [ "${deviceUdid}" != "" ]; then
 	if ps -eaf | grep ${deviceUdid} | grep 'WebDriverAgent' | grep -v grep; then
 		export pids=`ps -eaf | grep ${deviceUdid} | grep 'WebDriverAgent' | grep -v grep | awk '{ print $2 }'`
 		kill_processes $pids
+		rm -f ${metaDataFolder}/ip_${udid}.txt
 	fi
 else
 	echo "Skipping WDA kill as device doesn't exist"

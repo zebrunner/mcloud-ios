@@ -25,14 +25,16 @@ do
   device="$physical$simulator"
   #echo device: $device
 
-  wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
-  if [[ -n "$appium" && -z "$wda" ]]; then
-    echo "Stopping Appium process. WDA is crashed or not started but Appium process exists. ${udid} device name : ${name}"
+  wda=${metaDataFolder}/ip_${udid}.txt
+  #echo wda: $wda
+  
+  if [[ -n "$appium" && ! -f "$wda" ]]; then
+    echo "Stopping Appium process as no WebDriverAgent process detected. ${udid} device name : ${name}"
     ${BASEDIR}/stopAppium.sh $udid &
     continue
   fi
 
-  if [[ -n "$device" && -n "$wda" && -z "$appium" ]]; then
+  if [[ -n "$device" && -f "$wda" && -z "$appium" ]]; then
     ${BASEDIR}/startAppium.sh $udid &
   elif [[ -z "$device" &&  -n "$appium" ]]; then
     #double check for the case when connctedDevices.txt in sync and empty
