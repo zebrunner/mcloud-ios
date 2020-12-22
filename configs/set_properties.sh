@@ -18,7 +18,6 @@ export WEB_PROTOCOL=http
 export hubHost=stage.qaprosoft.com
 export hubPort=4446
 
-
 export automation_name=XCUITest
 export appium_home=/usr/local/lib/node_modules/appium
 
@@ -26,9 +25,6 @@ export devices=${BASEDIR}/devices.txt
 export configFolder=${BASEDIR}/configs
 export logFolder=${BASEDIR}/logs
 export metaDataFolder=${BASEDIR}/metaData
-
-export stf_screen_port_position=9
-export proxy_appium_port_position=10
 
 if [ ! -d "${BASEDIR}/logs" ]; then
     mkdir "${BASEDIR}/logs"

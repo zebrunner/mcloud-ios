@@ -9,6 +9,9 @@ fi
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 . ${BASEDIR}/configs/set_properties.sh
 
+# to be able to read by sync scripts
+export udid_position=4
+
 name=`cat ${devices} | grep "$udid" | cut -d '|' -f 1`
 export name=$(echo $name)
 
