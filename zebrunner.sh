@@ -222,8 +222,9 @@
       rm -f ${metaDataFolder}/ip_${udid}.txt
     else
       export pids=`ps -eaf | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
+      rm -f ${metaDataFolder}/ip_*.txt
     fi
-    #echo pids: $pids
+    echo pids: $pids
 
     kill_processes $pids
   }
