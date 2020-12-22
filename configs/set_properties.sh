@@ -27,16 +27,6 @@ export configFolder=${BASEDIR}/configs
 export logFolder=${BASEDIR}/logs
 export metaDataFolder=${BASEDIR}/metaData
 
-#general vars declaration to parse devices.txt correctly
-export name_position=1
-export type_position=2
-export os_version_position=3
-export udid_position=4
-export appium_port_position=5
-export wda_port_position=6
-export mjpeg_port_position=7
-export iwdp_port_position=8
-
 export stf_screen_port_position=9
 export proxy_appium_port_position=10
 
