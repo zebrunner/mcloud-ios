@@ -71,7 +71,17 @@
     print_banner
 
     #-------------- START EVERYTHING ------------------------------
-    echo TODO: implement startup or LaunchAgents load
+    if [[ $ZBR_MCLOUD_IOS_AGENT -eq 1 ]]; then
+      # load LaunchAgents scripts
+      echo HOME: $HOME
+      ls -la $HOME/Library/LaunchAgents/syncDevices.plist
+      launchctl load $HOME/Library/LaunchAgents/syncDevices.plist
+      launchctl load $HOME/Library/LaunchAgents/syncWDA.plist
+      launchctl load $HOME/Library/LaunchAgents/syncSTF.plist
+      launchctl load $HOME/Library/LaunchAgents/syncAppium.plist
+    else
+      echo TODO: implement just start by services
+    fi
   }
 
   stop() {
@@ -81,10 +91,70 @@
       exit -1
     fi
 
-    killWDA
-    killSTF
-    killAppium
+    stop-wda
+    stop-stf
+    stop-appium
+
   }
+
+  stop-wda() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    udid=$1
+    #echo udid: $udid
+    if [ "$udid" != "" ]; then
+      export pids=`ps -eaf | grep ${udid} | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
+      rm -f ${metaDataFolder}/ip_${udid}.txt
+    else
+      export pids=`ps -eaf | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
+    fi
+    #echo pids: $pids
+
+    kill_processes $pids
+  }
+
+  stop-stf() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    udid=$1
+    #echo udid: $udid
+    if [ "$udid" != "" ]; then
+      export pids=`ps -eaf | grep ${udid} | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }'`
+    else
+      export pids=`ps -eaf | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }'`
+    fi
+    #echo pids: $pids
+
+    kill_processes $pids
+  }
+
+  stop-appium() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    udid=$1
+    #echo udid: $udid
+    if [ "$udid" != "" ]; then
+      export pids=`ps -eaf | grep ${udid} | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+    else 
+      export pids=`ps -eaf | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+    fi
+    #echo pids: $pids
+
+    kill_processes $pids
+  }
+
 
   restart() {
     if [ ! -f backup/settings.env ]; then
@@ -227,23 +297,12 @@
     done
   }
 
-  killWDA() {
-    if ps -eaf | grep 'WebDriverAgent' | grep -v grep | grep -v '/stf' | grep -v '/usr/share/maven' ; then
-      kill -9 `ps -eaf | grep 'WebDriverAgent' | grep -v grep | grep -v '/stf' | grep -v '/usr/share/maven' | awk '{ print $2 }'`
-    fi
-    # explicitly remove all metadata files with detected ip addresses
-    rm -f ${metaDataFolder}/ip_*.txt
-  }
-
-  killSTF() {
-    if ps -eaf | grep 'ios-device' | grep 'stf' | grep -v grep; then
-      kill -9 `ps -eaf | grep 'ios-device' | grep 'stf' | grep -v grep | awk '{ print $2 }'`
-    fi
-  }
-
-  killAppium() {
-    if ps -eaf | grep 'appium' | grep -v grep | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' ; then
-      kill -9 `ps -eaf | grep 'appium' | grep -v grep | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+  kill_processes()
+  {
+    processes_pids=$*
+    if [ "${processes_pids}" != "" ]; then
+     echo processes_pids to kill: $processes_pids
+     kill -9 $processes_pids
     fi
   }
 
@@ -264,15 +323,18 @@
       Flags:
           --help | -h    Print help
       Arguments:
-          setup          Setup Device Farm iOS slave
-          start          Start Device Farm iOS slave services
-          stop           Stop Device Farm iOS slave services
-          restart        Restart Device Farm iOS slave services
-          down           Stop Device Farm iOS slave services and disable LaunchAgent services
-          shutdown       Destroy Device Farm iOS slave completely
-          backup         Backup Device Farm iOS slave services
-          restore        Restore Device Farm iOS slave services
-          version        Version of Device Farm iOS slave"
+          setup              Setup Device Farm iOS slave
+          start              Start Device Farm iOS slave services
+          stop               Stop Device Farm iOS slave services
+          stop-appium [udid] Stop Appium services [all or for exact device by udid]
+          stop-stf [udid]    Stop STF services [all or for exact device by udid]
+          stop-wda [udid]    Stop WebDriverAgent services [all or for exact device by udid]
+          restart            Restart Device Farm iOS slave services
+          down               Stop Device Farm iOS slave services and disable LaunchAgent services
+          shutdown           Destroy Device Farm iOS slave completely
+          backup             Backup Device Farm iOS slave services
+          restore            Restore Device Farm iOS slave services
+          version            Version of Device Farm iOS slave"
       echo_telegram
       exit 0
   }
@@ -280,7 +342,12 @@
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
-. ${BASEDIR}/configs/set_properties.sh
+if [[ -f backup/settings.env ]]; then
+  source backup/settings.env
+fi
+
+. configs/set_properties.sh
+
 
 case "$1" in
     setup)
@@ -291,6 +358,15 @@ case "$1" in
         ;;
     stop)
         stop
+        ;;
+    stop-appium)
+        stop-appium $2
+        ;;
+    stop-stf)
+        stop-stf $2
+        ;;
+    stop-wda)
+        stop-wda $2
         ;;
     restart)
         restart
