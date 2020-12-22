@@ -189,6 +189,12 @@
       # put IP address into the metadata file
       echo "${ip}" > ${metaDataFolder}/ip_${udid}.txt
 
+      #curl http://192.168.89.19:20001/status
+      #curl --silent --location --request POST "http://${ip}:${wda_port}/wda/homescreen" --header 'Content-Type: application/json'
+      curl --silent --location --request POST "http://${ip}:${wda_port}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities":{"CFBundleIdentifier": "com.apple.springboard"}}'
+      #sleep 30
+      #curl http://192.168.89.19:20001/status
+
     else
       # WDA is not started successfully!
       rm -f ${metaDataFolder}/ip_${udid}.txt
