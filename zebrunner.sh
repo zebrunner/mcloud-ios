@@ -84,6 +84,36 @@
     fi
   }
 
+  start-appium() {
+    udid=$1
+    if [ "$udid" == "" ]; then
+      echo_warning "You have to provide device udid: ./zebrunner.sh start-appium udid"
+      echo_telegram
+      exit -1
+    fi
+    #echo udid: $udid
+
+    . ./configs/getDeviceArgs.sh $udid
+
+    if [ "${device_ip}" == "" ]; then
+      echo "Unable to start Appium for '${name}' device as it's ip address not detected!" >> "${BASEDIR}/logs/${name}_appium.log"
+      exit -1
+    fi
+    echo "Starting appium: ${udid} - device name : ${name}"
+
+    ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
+
+    newWDA=false
+    #TODO: investigate if tablet should be registered separately, what about tvOS
+
+    nohup node ${appium_home}/build/lib/main.js -p ${appium_port} --log-timestamp --device-name "${name}" --automation-name=XCUItest --udid $udid \
+      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
+      --default-capabilities \
+     '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${device_ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${automation_name}'", "deviceName":"'$name'" }' \
+      --nodeconfig ./metaData/$udid.json >> "${BASEDIR}/logs/${name}_appium.log" 2>&1 &
+
+  }
+
   stop() {
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
@@ -325,6 +355,7 @@
       Arguments:
           setup              Setup Device Farm iOS slave
           start              Start Device Farm iOS slave services
+          start-appium udid  Start Appium service by device udid
           stop               Stop Device Farm iOS slave services
           stop-appium [udid] Stop Appium services [all or for exact device by udid]
           stop-stf [udid]    Stop STF services [all or for exact device by udid]
@@ -355,6 +386,9 @@ case "$1" in
         ;;
     start)
         start
+        ;;
+    start-appium)
+        start-appium $2
         ;;
     stop)
         stop
