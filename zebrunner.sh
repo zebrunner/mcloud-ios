@@ -168,22 +168,22 @@
     . ./configs/getDeviceArgs.sh $udid
 
     #backup current wda log to be able to analyze failures if any
-    if [[ -f logs/${name}_wda.log ]]; then
-      mv logs/${name}_wda.log backup/${name}_wda_`date +"%T"`.log
+    if [[ -f logs/wda_${name}.log ]]; then
+      mv logs/wda_${name}.log backup/wda_${name}_`date +"%T"`.log
     fi
 
     echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${appium_home}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-      -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/${name}_wda.log" 2>&1 &
+      -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
 
-    verifyWDAStartup "logs/${name}_wda.log" 120 >> "logs/${name}_wda.log"
+    verifyWDAStartup "logs/wda_${name}.log" 120 >> "logs/wda_${name}.log"
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
       # 2020-07-13 17:15:15.295128+0300 WebDriverAgentRunner-Runner[5660:22940482] ServerURLHere->http://192.168.88.127:20001<-ServerURLHere
 
-      ip=`grep "ServerURLHere->" "${BASEDIR}/logs/${name}_wda.log" | cut -d ':' -f 5`
+      ip=`grep "ServerURLHere->" "logs/wda_${name}.log" | cut -d ':' -f 5`
       # remove forward slashes
       ip="${ip//\//}"
       # put IP address into the metadata file

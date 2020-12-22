@@ -33,18 +33,18 @@ do
   wda=${metaDataFolder}/ip_${udid}.txt
   if [[ -n "$stf" && ! -f "$wda" ]]; then
     echo "Stopping STF process as no WebDriverAgent process detected. ${udid} device name : ${name}"
-    ${BASEDIR}/stopSTF.sh $udid &
+    ${BASEDIR}/zebrunner.sh stop-stf $udid &
     continue
   fi
 
   if [[ -n "$device" && -f "$wda" && -z "$stf" ]]; then
-    ${BASEDIR}/startSTF.sh $udid &
+    ${BASEDIR}/zebrunner.sh start-stf $udid &
   elif [[ -z "$device" && -n "$stf" ]]; then
     #double check for the case when connctedDevices.txt in sync and empty
     device_status=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
     if [[ -z "${device_status}" ]]; then
       echo "The iSTF ios-device will be stopped: ${udid} device name : ${name}"
-      ${BASEDIR}/stopSTF.sh $udid &
+      ${BASEDIR}/zebrunner.sh stop-stf $udid &
     fi
   fi
 done < ${devices}

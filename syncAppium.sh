@@ -30,12 +30,12 @@ do
   
   if [[ -n "$appium" && ! -f "$wda" ]]; then
     echo "Stopping Appium process as no WebDriverAgent process detected. ${udid} device name : ${name}"
-    ${BASEDIR}/stopAppium.sh $udid &
+    ${BASEDIR}/zebrunner.sh stop-appium $udid &
     continue
   fi
 
   if [[ -n "$device" && -f "$wda" && -z "$appium" ]]; then
-    ${BASEDIR}/startAppium.sh $udid &
+    ${BASEDIR}/zebrunner.sh start-appium $udid &
   elif [[ -z "$device" &&  -n "$appium" ]]; then
     #double check for the case when connctedDevices.txt in sync and empty
     device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
@@ -43,7 +43,7 @@ do
       echo "Appium will be stopped: ${udid} - device name : ${name}"
       echo device: $device
       echo appium: $appium
-      ${BASEDIR}/stopAppium.sh $udid &
+      ${BASEDIR}/zebrunner.sh stop-appium $udid &
     fi
   fi
 done < ${devices}

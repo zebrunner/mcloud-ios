@@ -5,8 +5,8 @@ BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 echo `date +"%T"` Sync WDA script started
 
-# use-case when on-demand manual startWDA.sh is running!
-isRunning=`ps -ef | grep startWDA.sh | grep -v grep`
+# use-case when on-demand manual "./zebrunner.sh start-wda" is running!
+isRunning=`ps -ef | grep start-wda | grep -v grep`
 #echo isRunning: $isRunning
 
 if [[ -n "$isRunning" ]]; then
@@ -41,13 +41,13 @@ do
     # simultaneous WDA launch is not supported by Xcode!
     # error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked
     # Possibly there are two concurrent builds running in the same filesystem location.
-    ${BASEDIR}/startWDA.sh $udid
+    ${BASEDIR}/zebrunner.sh start-wda $udid
   elif [[ -z "$device" &&  -n "$wda" ]]; then
     #double check for the case when connctedDevices.txt in sync and empty
     device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
     if [[ -z "${device}" ]]; then
       echo "WDA will be stopped: ${udid} - device name : ${name}"
-      ${BASEDIR}/stopWDA.sh $udid &
+      ${BASEDIR}/zebrunner.sh stop-wda $udid &
     fi
 
   fi
