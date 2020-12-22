@@ -33,3 +33,7 @@ fi
 if [ ! -d "${BASEDIR}/metaData" ]; then
     mkdir "${BASEDIR}/metaData"
 fi
+
+# udid position in devices.txt to be able to read by sync scripts
+export udid_position=4
+
