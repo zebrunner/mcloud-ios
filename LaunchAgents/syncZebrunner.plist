@@ -9,13 +9,13 @@
 			<string>/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin</string>
 		</dict>
 		<key>Label</key>
-		<string>com.zebrunner.mcloud.devices</string>
+		<string>com.zebrunner.mcloud</string>
 		<key>ProgramArguments</key>
 		<array>
-                	<string>./syncDevices.sh</string>
+                	<string>./zebrunner.sh start-services</string>
         	</array>
 		<key>WorkingDirectory</key>
-		<string>/Users/build/tools/mcloud-ios</string>
+		<string>/opt/tools/mcloud-ios</string>
 		<key>UserName</key>
 		<string>build</string>
 		<key>GroupName</key>

@@ -104,6 +104,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
   }
 
+  start-services() {
+    syncDevices
+    syncWDA
+    syncAppium
+    syncSTF
+  }
+
   start-appium() {
     udid=$1
     if [ "$udid" == "" ]; then
@@ -683,6 +690,9 @@ case "$1" in
         ;;
     start-wda)
         start-wda $2
+        ;;
+    start-services)
+        start-services
         ;;
     stop)
         stop
