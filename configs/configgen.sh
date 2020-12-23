@@ -4,6 +4,7 @@ udid=$1
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+. ${BASEDIR}/.env
 
 
 DEVICENAME=${name}

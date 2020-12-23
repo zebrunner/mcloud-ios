@@ -7,7 +7,8 @@ if [ "$udid" == "" ]; then
 fi
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
-. ${BASEDIR}/configs/set_properties.sh
+devices=${BASEDIR}/devices.txt
+
 
 name=`cat ${devices} | grep "$udid" | cut -d '|' -f 1`
 export name=$(echo $name)

@@ -1,5 +1,33 @@
 #!/bin/bash
 
+BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd ${BASEDIR}
+
+source ${BASEDIR}/.env
+
+if [[ -f backup/settings.env ]]; then
+  source backup/settings.env
+fi
+
+export devices=${BASEDIR}/devices.txt
+export metaDataFolder=${BASEDIR}/metaData
+
+if [ ! -d "${BASEDIR}/logs/backup" ]; then
+    mkdir -p "${BASEDIR}/logs/backup"
+fi
+
+if [ ! -d "${BASEDIR}/metaData" ]; then
+    mkdir "${BASEDIR}/metaData"
+fi
+
+# udid position in devices.txt to be able to read by sync scripts
+export udid_position=4
+
+export connectedDevices=${metaDataFolder}/connectedDevices.txt
+export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
+
+
+
   print_banner() {
   echo "
 ███████╗███████╗██████╗ ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗      ██████╗███████╗
@@ -44,10 +72,7 @@
     print_banner
 
     # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncWDA.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncSTF.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncAppium.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncDevices.plist
+    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
 
     # Stop existing services: WebDriverAgent, SmartTestFarm and Appium
     stop
@@ -55,10 +80,7 @@
     # remove configuration files and LaunchAgents plist(s)
     rm -f devices.txt
 
-    rm -f $HOME/Library/LaunchAgents/syncWDA.plist
-    rm -f $HOME/Library/LaunchAgents/syncSTF.plist
-    rm -f $HOME/Library/LaunchAgents/syncAppium.plist
-    rm -f $HOME/Library/LaunchAgents/syncDevices.plist
+    rm -f $HOME/Library/LaunchAgents/syncZebrunner.plist
   }
 
   start() {
@@ -72,24 +94,21 @@
 
     #-------------- START EVERYTHING ------------------------------
     if [[ $ZBR_MCLOUD_IOS_AGENT -eq 1 ]]; then
-      # load LaunchAgents scripts
-      echo HOME: $HOME
-      ls -la $HOME/Library/LaunchAgents/syncDevices.plist
-      launchctl load $HOME/Library/LaunchAgents/syncDevices.plist
-      launchctl load $HOME/Library/LaunchAgents/syncWDA.plist
-      launchctl load $HOME/Library/LaunchAgents/syncSTF.plist
-      launchctl load $HOME/Library/LaunchAgents/syncAppium.plist
+      # load LaunchAgents script so all services will be started automatically
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
     else
-      echo TODO: implement just start by services
+      syncDevices
+      syncWDA
+      syncAppium
+      syncSTF
     fi
   }
 
   start-appium() {
     udid=$1
     if [ "$udid" == "" ]; then
-      echo_warning "You have to provide device udid: ./zebrunner.sh start-appium udid"
-      echo_telegram
-      exit -1
+      syncAppium
+      return 0
     fi
     #echo udid: $udid
 
@@ -114,16 +133,15 @@
 
     #TODO: remove below workaround to the sessionId: null value
     sleep 10
-    curl -H 'Content-type: application/json' -X POST http://${STF_NODE_HOST}:${appium_port}/wd/hub/session -d '{"capabilities": {"alwaysMatch": {"platformName": "iOS", "bundleId": "com.apple.calculator"}}}'
+    curl -H 'Content-type: application/json' -X POST http://${STF_NODE_HOST}:${appium_port}/wd/hub/session -d '{"capabilities": {"alwaysMatch": {"platformName": "iOS", "snapshotMaxDepth":"0"}}}'
 
   }
 
   start-stf() {
     udid=$1
     if [ "$udid" == "" ]; then
-      echo_warning "You have to provide device udid: ./zebrunner.sh start-stf udid"
-      echo_telegram
-      exit -1
+      syncSTF
+      return 0
     fi
     #echo udid: $udid
     . configs/getDeviceArgs.sh $udid
@@ -164,9 +182,8 @@
   start-wda() {
     udid=$1
     if [ "$udid" == "" ]; then
-      echo_warning "You have to provide device udid: ./zebrunner.sh start-wda udid"
-      echo_telegram
-      exit -1
+      syncWDA
+      retun 0
     fi
     #echo udid: $udid
 
@@ -207,9 +224,9 @@
       exit -1
     fi
 
-    stop-wda
     stop-stf
     stop-appium
+    stop-wda
   }
 
   stop-wda() {
@@ -290,11 +307,10 @@
       exit -1
     fi
 
-    # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncWDA.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncSTF.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncAppium.plist
-    launchctl unload $HOME/Library/LaunchAgents/syncDevices.plist
+    if [[ $ZBR_MCLOUD_IOS_AGENT -eq 1 ]]; then
+      # unload LaunchAgents scripts
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
+    fi
 
     stop
   }
@@ -314,10 +330,7 @@
     print_banner
 
     cp devices.txt ./backup/devices.txt
-    cp $HOME/Library/LaunchAgents/syncWDA.plist ./backup/syncWDA.plist
-    cp $HOME/Library/LaunchAgents/syncSTF.plist ./backup/syncSTF.plist
-    cp $HOME/Library/LaunchAgents/syncAppium.plist ./backup/syncAppium.plist
-    cp $HOME/Library/LaunchAgents/syncDevices.plist ./backup/syncDevices.plist
+    cp $HOME/Library/LaunchAgents/syncZebrunner.plist ./backup/syncZebrunner.plist
 
     echo "Backup for Device Farm iOS slave was successfully finished."
 
@@ -344,10 +357,7 @@
     print_banner
     down
     cp ./backup/devices.txt devices.txt
-    cp ./backup/syncWDA.plist $HOME/Library/LaunchAgents/syncWDA.plist
-    cp ./backup/syncSTF.plist $HOME/Library/LaunchAgents/syncSTF.plist
-    cp ./backup/syncAppium.plist $HOME/Library/LaunchAgents/syncAppium.plist
-    cp ./backup/syncDevices.plist $HOME/Library/LaunchAgents/syncDevices.plist
+    cp ./backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
 
     echo_warning "Your services needs to be started after restore."
     confirm "" "      Start now?" "y"
@@ -496,31 +506,166 @@
       Flags:
           --help | -h    Print help
       Arguments:
-          setup              Setup Device Farm iOS slave
-          start              Start Device Farm iOS slave services
-          start-appium udid  Start Appium service by device udid
-          stop               Stop Device Farm iOS slave services
-          stop-appium [udid] Stop Appium services [all or for exact device by udid]
-          stop-stf [udid]    Stop STF services [all or for exact device by udid]
-          stop-wda [udid]    Stop WebDriverAgent services [all or for exact device by udid]
-          restart            Restart Device Farm iOS slave services
-          down               Stop Device Farm iOS slave services and disable LaunchAgent services
-          shutdown           Destroy Device Farm iOS slave completely
-          backup             Backup Device Farm iOS slave services
-          restore            Restore Device Farm iOS slave services
-          version            Version of Device Farm iOS slave"
+          setup               Setup Device Farm iOS slave
+          start               Start Device Farm iOS slave services
+          start-appium [udid] Start Appium services [all or for exact device by udid]
+          start-stf [udid]    Start STF services [all or for exact device by udid]
+          start-wda [udid]    Start WDA services [all or for exact device by udid]
+          stop                Stop Device Farm iOS slave services
+          stop-appium [udid]  Stop Appium services [all or for exact device by udid]
+          stop-stf [udid]     Stop STF services [all or for exact device by udid]
+          stop-wda [udid]     Stop WebDriverAgent services [all or for exact device by udid]
+          restart             Restart Device Farm iOS slave services
+          down                Stop Device Farm iOS slave services and disable LaunchAgent services
+          shutdown            Destroy Device Farm iOS slave completely
+          backup              Backup Device Farm iOS slave services
+          restore             Restore Device Farm iOS slave services
+          version             Version of Device Farm iOS slave"
       echo_telegram
       exit 0
   }
 
-BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd ${BASEDIR}
+  syncDevices() {
+    echo `date +"%T"` Sync Devices script started
+    devicesFile=${metaDataFolder}/connectedDevices.txt
+    /usr/local/bin/ios-deploy -c -t 3 > ${connectedDevices}
+  }
 
-if [[ -f backup/settings.env ]]; then
-  source backup/settings.env
-fi
+  syncWDA() {
+    echo `date +"%T"` Sync WDA script started
+    # use-case when on-demand manual "./zebrunner.sh start-wda" is running!
+    isRunning=`ps -ef | grep start-wda | grep -v grep`
+    #echo isRunning: $isRunning
 
-. configs/set_properties.sh
+    if [[ -n "$isRunning" ]]; then
+      echo WebDriverAgent is being starting already. Skip sync operation!
+      return 0
+    fi
+
+    # verify one by one connected devices and authorized simulators
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      if [ "$udid" = "UDID" ]; then
+        continue
+      fi
+      . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+
+      #wda check is only for approach with syncWda.sh and usePrebuildWda=true
+      wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
+
+      physical=`cat ${connectedDevices} | grep $udid`
+      simulator=`cat ${connectedSimulators} | grep $udid`
+      device="$physical$simulator"
+      #echo device: $device
+
+      if [[ -n "$device" &&  -z "$wda" ]]; then
+        # simultaneous WDA launch is not supported by Xcode!
+        # error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked
+        # Possibly there are two concurrent builds running in the same filesystem location.
+        ${BASEDIR}/zebrunner.sh start-wda $udid
+      elif [[ -z "$device" &&  -n "$wda" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device}" ]]; then
+          echo "WDA will be stopped: ${udid} - device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-wda $udid &
+        fi
+      fi
+    done < ${devices}
+  }
+
+  syncAppium() {
+    echo `date +"%T"` Sync Appium script started
+
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+      . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+
+      appium=`ps -ef | grep ${APPIUM_HOME}/build/lib/main.js  | grep $udid`
+
+      physical=`cat ${connectedDevices} | grep $udid`
+      simulator=`cat ${connectedSimulators} | grep $udid`
+      device="$physical$simulator"
+      #echo device: $device
+
+      wda=${metaDataFolder}/ip_${udid}.txt
+      #echo wda: $wda
+
+      if [[ -n "$appium" && ! -f "$wda" ]]; then
+        echo "Stopping Appium process as no WebDriverAgent process detected. ${udid} device name : ${name}"
+        ${BASEDIR}/zebrunner.sh stop-appium $udid &
+        continue
+      fi
+
+      if [[ -n "$device" && -f "$wda" && -z "$appium" ]]; then
+        ${BASEDIR}/zebrunner.sh start-appium $udid &
+      elif [[ -z "$device" &&  -n "$appium" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device}" ]]; then
+          echo "Appium will be stopped: ${udid} - device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-appium $udid &
+        fi
+      fi
+    done < ${devices}
+  }
+
+  syncSTF() {
+    echo `date +"%T"` Sync STF script started
+
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      if [ "$udid" = "UDID" ]; then
+        continue
+      fi
+      . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+
+      physical=`cat ${connectedDevices} | grep $udid`
+      simulator=`cat ${connectedSimulators} | grep $udid`
+
+      if [[ -n "$simulator" ]]; then
+        # https://github.com/zebrunner/stf/issues/168
+        # simulators temporary unavailable in iSTF
+        continue
+      fi
+
+      device="$physical$simulator"
+      #echo device: $device
+
+      stf=`ps -eaf | grep ${udid} | grep 'ios-device' | grep -v grep`
+      wda=${metaDataFolder}/ip_${udid}.txt
+      if [[ -n "$stf" && ! -f "$wda" ]]; then
+        echo "Stopping STF process as no WebDriverAgent process detected. ${udid} device name : ${name}"
+        ${BASEDIR}/zebrunner.sh stop-stf $udid &
+        continue
+      fi
+
+      if [[ -n "$device" && -f "$wda" && -z "$stf" ]]; then
+        ${BASEDIR}/zebrunner.sh start-stf $udid &
+      elif [[ -z "$device" && -n "$stf" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device_status=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device_status}" ]]; then
+          echo "The iSTF ios-device will be stopped: ${udid} device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-stf $udid &
+        fi
+      fi
+    done < ${devices}
+  }
+
+
 
 
 case "$1" in
