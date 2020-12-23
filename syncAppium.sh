@@ -18,7 +18,7 @@ do
   fi
   . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
-  appium=`ps -ef | grep $appium_home/build/lib/main.js  | grep $udid`
+  appium=`ps -ef | grep ${APPIUM_HOME}/build/lib/main.js  | grep $udid`
 
   physical=`cat ${connectedDevices} | grep $udid`
   simulator=`cat ${connectedSimulators} | grep $udid`

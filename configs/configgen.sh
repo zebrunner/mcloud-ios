@@ -15,8 +15,6 @@ DEVICEOS=iOS
 DEVICEUDID=${udid}
 
 AUTOMATION_NAME=${automation_name}
-HUB_PORT=${hubPort}
-HUB_HOST=${hubHost}
 
 # current host
 HOST=${STF_NODE_HOST}

@@ -12,13 +12,13 @@ export RETHINKDB_PORT_28015_TCP="tcp://${STF_MASTER_HOST}:28015"
 export WEBSOCKET_PROTOCOL=ws
 export WEB_PROTOCOL=http
 
-# selenium hub settings
-export hubHost=stage.solvd.com
-export hubPort=4446
+# Zebrunner Device Farm Selenim hub settings: https://github.com/zebrunner/mcloud-grid
+export HUB_HOST=stage.qaprosoft.com
+export HUB_PORT=4446
 
+export APPIUM_HOME=/usr/local/lib/node_modules/appium
 
 export automation_name=XCUITest
-export appium_home=export appium_home=/usr/local/lib/node_modules/appium
 
 export devices=${BASEDIR}/devices.txt
 export configFolder=${BASEDIR}/configs
