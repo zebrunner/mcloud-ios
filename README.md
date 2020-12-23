@@ -50,8 +50,7 @@ Phone_X1         | simulator | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
   > sycnup simulators script should be executed manually on-demand when any simulator added/removed from the MacOS
 
 * Update configs/set_properties.sh. Specify actual values for 
-  * STF_PUBLIC_HOST
-  * STF_PRIVATE_HOST
+  * STF_MASTER_HOST
   * STF_NODE_HOST
   * WEBSOCKET_PROTOCOL
   * WEB_PROTOCOL
