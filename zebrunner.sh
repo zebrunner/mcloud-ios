@@ -51,6 +51,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZBR_MCLOUD_IOS_VERSION=1.0
     echo TODO: implement configuration steps
 
+    syncSimulators
+
     export ZBR_MCLOUD_IOS_AGENT=1
     # export all ZBR* variables to save user input
     export_settings
@@ -533,6 +535,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     /usr/local/bin/ios-deploy -c -t 3 > ${connectedDevices}
   }
 
+  syncSimulators() {
+    echo `date +"%T"` Sync Simulators script started
+    simulatorsFile=${metaDataFolder}/connectedSimulators.txt
+    # xcrun xctrace list devices - this command can not be used because it returns physical devices as well
+    xcrun simctl list | grep -v "Unavailable" | grep -v "unavailable" > ${simulatorsFile}
+  }
+
   syncWDA() {
     echo `date +"%T"` Sync WDA script started
     # use-case when on-demand manual "./zebrunner.sh start-wda" is running!
@@ -715,6 +724,9 @@ case "$1" in
         ;;
     restore)
         restore
+        ;;
+    authorize-simulator)
+        syncSimulators
         ;;
     version)
         version
