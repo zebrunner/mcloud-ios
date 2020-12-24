@@ -137,11 +137,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --default-capabilities \
      '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${device_ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
       --nodeconfig ./metaData/$udid.json >> "logs/appium_${name}.log" 2>&1 &
-
-    #TODO: remove below workaround to the sessionId: null value
-    sleep 10
-    curl -H 'Content-type: application/json' -X POST http://${STF_NODE_HOST}:${appium_port}/wd/hub/session -d '{"capabilities": {"alwaysMatch": {"platformName": "iOS", "snapshotMaxDepth":"0"}}}'
-
   }
 
   start-stf() {
