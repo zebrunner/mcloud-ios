@@ -12,7 +12,8 @@
 		<string>com.zebrunner.mcloud</string>
 		<key>ProgramArguments</key>
 		<array>
-                	<string>./zebrunner.sh start-services</string>
+                	<string>./zebrunner.sh</string>
+		        <string>start-services</string>
         	</array>
 		<key>WorkingDirectory</key>
 		<string>/opt/tools/mcloud-ios</string>
@@ -27,7 +28,7 @@
 		<true/>
 
 		<key>StartInterval</key>
- 		<integer>5</integer>
+ 		<integer>15</integer>
 
 		<key>StandardErrorPath</key>
 		<string>logs/agents.log</string>
