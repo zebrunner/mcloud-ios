@@ -39,9 +39,16 @@ export stf_screen_port=$(echo $stf_screen_port)
 proxy_appium_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 10`
 export proxy_appium_port=$(echo $proxy_appium_port)
 
-device_ip=""
+ip=""
 if [[ -f "${metaDataFolder}/ip_${udid}.txt" ]]; then
-  device_ip=`cat ${metaDataFolder}/ip_${udid}.txt`
+  ip=`cat ${metaDataFolder}/ip_${udid}.txt`
 fi
-export device_ip=$(echo $device_ip)
+export ip=$(echo $ip)
+
+session_ip=""
+if [[ -f "${metaDataFolder}/session_${udid}.txt" ]]; then
+  session_ip=`cat ${metaDataFolder}/session_${udid}.txt`
+fi
+export session_ip=$(echo $session_ip)
+
 
