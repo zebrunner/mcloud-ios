@@ -214,6 +214,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       ip="${ip//\//}"
       # put IP address into the metadata file
       echo "${ip}" > ${metaDataFolder}/ip_${udid}.txt
+
+      curl --location --request POST "http://${ip}:${wda_port}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > "logs/wda_${name}.log" 2>&1 &
+#      curl --location --request POST "http://${ip}:${wda_port}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities":{"snapshotTimeout":1}}'
     else
       # WDA is not started successfully!
       rm -f ${metaDataFolder}/ip_${udid}.txt
