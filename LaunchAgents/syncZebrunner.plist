@@ -16,11 +16,9 @@
 		        <string>start-services</string>
         	</array>
 		<key>WorkingDirectory</key>
-		<string>/opt/tools/mcloud-ios</string>
+		<string>working_dir_value</string>
 		<key>UserName</key>
-		<string>build</string>
-		<key>GroupName</key>
-                <string>staff</string>
+		<string>user_value</string>
 		<key>KeepAlive</key>
 		<false/>
 

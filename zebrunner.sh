@@ -4,11 +4,11 @@ BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
 
-if [[ -f backup/settings.env ]]; then
+if [ -f backup/settings.env ]; then
   source backup/settings.env
 fi
 
-if [[ -f .env ]]; then
+if [ -f .env ]; then
   source .env
 fi
 
@@ -29,6 +29,14 @@ export udid_position=4
 export connectedDevices=${metaDataFolder}/connectedDevices.txt
 export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
+if [ ! -d "$HOME/.nvm" ]; then
+  echo_warning "NVM must be installed as prerequisites!"
+  exit -1
+fi
+
+#load NVM into the bash path
+export NVM_DIR="$HOME/.nvm"
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
 
 
   print_banner() {
@@ -61,7 +69,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZBR_MCLOUD_IOS_VERSION=1.0
 
     # Setup MCloud master host settings: protocol, hostname and port
-    echo "MCloud Master Settings"
+    echo "MCloud SmartTestFarm Settings"
     local is_confirmed=0
 
     while [[ $is_confirmed -eq 0 ]]; do
@@ -80,7 +88,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
         ZBR_MCLOUD_PORT=$local_port
       fi
 
-      confirm "Zebrunner MCloud STF URL: $ZBR_MCLOUD_PROTOCOL://$ZBR_MCLOUD_HOSTNAME:$ZBR_MCLOUD_PORT/stf" "Continue?" "y"
+      confirm "MCloud STF URL: $ZBR_MCLOUD_PROTOCOL://$ZBR_MCLOUD_HOSTNAME:$ZBR_MCLOUD_PORT/stf" "Continue?" "y"
       is_confirmed=$?
     done
 
@@ -110,20 +118,31 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       replace .env "WEB_PROTOCOL=http" "WEB_PROTOCOL=https"
     fi
 
-    syncSimulators
-    # export all ZBR* variables to save user input
-
-    echo_warning "Make sure your devices and simulators already registered in devices.txt!"
-    export_settings
-
     echo "Building iSTF component..."
-    git clone --single-branch --branch develop https://github.com/zebrunner/stf.git
-    cd stf
+    if [ ! -d stf ]; then
+      git clone --single-branch --branch master https://github.com/zebrunner/stf.git
+      cd stf
+    else
+      cd stf
+      git pull
+    fi
     nvm use v8
     npm install
     npm link
+    cd "${BASEDIR}"
 
     # setup LaunchAgents
+    cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
+    replace $HOME/Library/LaunchAgents/syncZebrunner.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/syncZebrunner.plist "user_value" "$USER"
+
+    echo ""
+    echo_warning "Make sure to register your devices and simulators in devices.txt!"
+
+    syncSimulators
+    # export all ZBR* variables to save user input
+    export_settings
+
   }
 
   shutdown() {
@@ -148,9 +167,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     stop
 
     # remove configuration files and LaunchAgents plist(s)
-    rm -f devices.txt
+    git checkout -- devices.txt
 
     rm -f $HOME/Library/LaunchAgents/syncZebrunner.plist
+
+    rm -rf stf
   }
 
   start() {
@@ -219,8 +240,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
 
     # Specify pretty old node v8.17.0 as current due to the STF dependency
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     nvm use v8.17.0
 
     STF_BIN=`which stf`
