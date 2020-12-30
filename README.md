@@ -14,13 +14,13 @@ Zebrunner Device Farm (iOS slave)
 * Install XCode 11.2+
 * Install [nvm](https://github.com/nvm-sh/nvm) version manager
   > NVM required to organize automatic switch between nodes
-* Install v8.17.0 and Appium compatible node using nvm
+* Using NVM install v8.17.0 and latest Appium compatible node version
   > 8.x node is still required by OpenSTF!
-* Sign WebDriverAgent using your Dev Apple certificate and install WDA on each device manually
-  * Open in XCode /usr/loca/lib/node_modules/appium/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
+* Sign WebDriverAgent using your Dev Apple certificate and install WebDriverAgent on each device manually
+  * Open in XCode <i>APPIUM_HOME</i>/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
   * Choose WebDriverAgentRunner and your device(s)
   * Choose your dev certificate
-  * Product -> Test. When WDA installed and started successfully Product -> Stop
+  * `Product -> Test`. When WDA installed and started successfully `Product -> Stop`
 
 ## iOS-slave setup
 * Clone mcloud-ios repo
@@ -44,13 +44,12 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 ```
 
 * Provide required arguments during setup
-  > [Optional] It is recommended to enable Zebrunner [LaunchAgent]((https://www.launchd.info/)) to start/stop services automatically for connected/disconnected device.
 
 * <b>Important!</b> Everytime you create new Simulator(s) via XCode you have to run `authorize-simulator` command to authorize it and add new line into devices.txt to whitelist
 ```
 ./zebrunner.sh authorize-simulator
 ```
-  > it is enough to run `authorize-simulator` command at once after generating multiply simulators
+  > it is enough to run `./zebrunner.sh authorize-simulator` command at once after generating multiply simulators
 
 ## License
 Code - [Apache Software License v2.0](http://www.apache.org/licenses/LICENSE-2.0)

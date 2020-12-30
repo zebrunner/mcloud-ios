@@ -3,10 +3,13 @@
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
-source ${BASEDIR}/.env
 
 if [[ -f backup/settings.env ]]; then
   source backup/settings.env
+fi
+
+if [[ -f .env ]]; then
+  source .env
 fi
 
 export devices=${BASEDIR}/devices.txt
@@ -43,19 +46,84 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   setup() {
     print_banner
 
+    cp .env.original .env
+
+    #TODO: add software prerequisites check like nvm, appium, xcode etc
+
+    # load default interactive installer settings
+    source backup/settings.env.original
+
     # load ./backup/settings.env if exist to declare ZBR* vars from previous run!
     if [[ -f backup/settings.env ]]; then
       source backup/settings.env
     fi
 
     export ZBR_MCLOUD_IOS_VERSION=1.0
-    echo TODO: implement configuration steps
+
+    # Setup MCloud master host settings: protocol, hostname and port
+    echo "MCloud Master Settings"
+    local is_confirmed=0
+
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "Master host protocol [$ZBR_MCLOUD_PROTOCOL]: " local_protocol
+      if [[ ! -z $local_protocol ]]; then
+        ZBR_MCLOUD_PROTOCOL=$local_protocol
+      fi
+
+      read -p "Master host address [$ZBR_MCLOUD_HOSTNAME]: " local_hostname
+      if [[ ! -z $local_hostname ]]; then
+        ZBR_MCLOUD_HOSTNAME=$local_hostname
+      fi
+
+      read -p "Master host port [$ZBR_MCLOUD_PORT]: " local_port
+      if [[ ! -z $local_port ]]; then
+        ZBR_MCLOUD_PORT=$local_port
+      fi
+
+      confirm "Zebrunner MCloud STF URL: $ZBR_MCLOUD_PROTOCOL://$ZBR_MCLOUD_HOSTNAME:$ZBR_MCLOUD_PORT/stf" "Continue?" "y"
+      is_confirmed=$?
+    done
+
+    export ZBR_MCLOUD_PROTOCOL=$ZBR_MCLOUD_PROTOCOL
+    export ZBR_MCLOUD_HOSTNAME=$ZBR_MCLOUD_HOSTNAME
+    export ZBR_MCLOUD_PORT=$ZBR_MCLOUD_PORT
+
+    read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
+    if [[ ! -z $local_hostname ]]; then
+      ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
+    fi
+    export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
+
+    read -p "Appium path [$ZBR_MCLOUD_APPIUM_PATH]: " local_value
+    if [[ ! -z $local_value ]]; then
+      ZBR_MCLOUD_APPIUM_PATH=$local_value
+    fi
+    export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
+
+    replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
+    replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
+    replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
+    replace .env "appium_path_value" "$ZBR_MCLOUD_APPIUM_PATH"
+
+    if [ "$ZBR_MCLOUD_PROTOCOL" == "https" ]; then
+      replace .env "WEBSOCKET_PROTOCOL=ws" "WEBSOCKET_PROTOCOL=wss"
+      replace .env "WEB_PROTOCOL=http" "WEB_PROTOCOL=https"
+    fi
 
     syncSimulators
-
-    export ZBR_MCLOUD_IOS_AGENT=1
     # export all ZBR* variables to save user input
+
+    echo_warning "Make sure your devices and simulators already registered in devices.txt!"
     export_settings
+
+    echo "Building iSTF component..."
+    git clone --single-branch --branch develop https://github.com/zebrunner/stf.git
+    cd stf
+    nvm use v8
+    npm install
+    npm link
+
+    # setup LaunchAgents
   }
 
   shutdown() {
@@ -95,15 +163,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     print_banner
 
     #-------------- START EVERYTHING ------------------------------
-    if [[ $ZBR_MCLOUD_IOS_AGENT -eq 1 ]]; then
-      # load LaunchAgents script so all services will be started automatically
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
-    else
-      syncDevices
-      syncWDA
-      syncAppium
-      syncSTF
-    fi
+    # load LaunchAgents script so all services will be started automatically
+    launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
   }
 
   start-services() {
@@ -173,7 +234,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --device-type ${type} \
       --provider ${STF_NODE_HOST} \
       --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
-      --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}/ --screen-jpeg-quality 40 --screen-ping-interval 30000 \
+      --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 40 --screen-ping-interval 30000 \
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
@@ -341,10 +402,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    if [[ $ZBR_MCLOUD_IOS_AGENT -eq 1 ]]; then
-      # unload LaunchAgents scripts
-      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
-    fi
+    # unload LaunchAgents scripts
+    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
 
     stop
   }
@@ -705,6 +764,25 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
         fi
       fi
     done < ${devices}
+  }
+
+  replace() {
+    #TODO: https://github.com/zebrunner/zebrunner/issues/328 organize debug logging for setup/replace
+    file=$1
+    #echo "file: $file"
+    content=$(<$file) # read the file's content into
+    #echo "content: $content"
+
+    old=$2
+    #echo "old: $old"
+
+    new=$3
+    #echo "new: $new"
+    content=${content//"$old"/$new}
+
+    #echo "content: $content"
+
+    printf '%s' "$content" >$file    # write new content to disk
   }
 
 
