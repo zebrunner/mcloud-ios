@@ -51,6 +51,8 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 ```
   > it is enough to run `./zebrunner.sh authorize-simulator` command at once after generating multiply simulators
 
+* Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents load on reboot
+
 ## License
 Code - [Apache Software License v2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
