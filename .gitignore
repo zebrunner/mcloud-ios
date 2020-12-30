@@ -1,3 +1,4 @@
+.env
 nohup.out
 backup/*
 logs/*
@@ -6,3 +7,4 @@ metaData/*.json
 .DS_Store
 *.bak
 tmp/*
+stf

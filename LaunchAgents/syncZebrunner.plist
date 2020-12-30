@@ -9,17 +9,16 @@
 			<string>/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin</string>
 		</dict>
 		<key>Label</key>
-		<string>com.zebrunner.mcloud.devices</string>
+		<string>com.zebrunner.mcloud</string>
 		<key>ProgramArguments</key>
 		<array>
-                	<string>./syncDevices.sh</string>
+                	<string>./zebrunner.sh</string>
+		        <string>start-services</string>
         	</array>
 		<key>WorkingDirectory</key>
-		<string>/Users/build/tools/mcloud-ios</string>
+		<string>working_dir_value</string>
 		<key>UserName</key>
-		<string>build</string>
-		<key>GroupName</key>
-                <string>staff</string>
+		<string>user_value</string>
 		<key>KeepAlive</key>
 		<false/>
 
@@ -27,7 +26,7 @@
 		<true/>
 
 		<key>StartInterval</key>
- 		<integer>5</integer>
+ 		<integer>15</integer>
 
 		<key>StandardErrorPath</key>
 		<string>logs/agents.log</string>

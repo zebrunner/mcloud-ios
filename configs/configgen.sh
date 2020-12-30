@@ -3,8 +3,8 @@
 udid=$1
 
 BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
-#. ${BASEDIR}/configs/set_properties.sh
 . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+. ${BASEDIR}/.env
 
 
 DEVICENAME=${name}
@@ -13,16 +13,6 @@ DEVICEVERSION=${os_version}
 DEVICEPLATFORM=MAC
 DEVICEOS=iOS
 DEVICEUDID=${udid}
-
-AUTOMATION_NAME=${automation_name}
-HUB_PORT=${hubPort}
-HUB_HOST=${hubHost}
-
-# current host
-HOST=${STF_PRIVATE_NODE_HOST}
-PORT=${appium_port}
-
-WDA_PORT=${wda_port}
 
 cat << EndOfMessage
 {
@@ -44,8 +34,8 @@ cat << EndOfMessage
   {
     "proxy": "com.qaprosoft.carina.grid.MobileRemoteProxy",
     "url":"http://${HUB_HOST}:${HUB_PORT}/wd/hub",
-    "port": ${PORT},
-    "host": "${HOST}",
+    "port": ${appium_port},
+    "host": "${STF_NODE_HOST}",
     "hubPort": ${HUB_PORT},
     "hubHost": "${HUB_HOST}",
     "timeout": 180,
