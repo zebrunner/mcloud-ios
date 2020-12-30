@@ -7,3 +7,4 @@ metaData/*.json
 .DS_Store
 *.bak
 tmp/*
+stf
