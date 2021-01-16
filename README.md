@@ -21,6 +21,8 @@ Zebrunner Device Farm (iOS slave)
   * Choose WebDriverAgentRunner and your device(s)
   * Choose your dev certificate
   * `Product -> Test`. When WDA installed and started successfully `Product -> Stop`
+* Install ffmpeg for video recording capabilities
+  `brew install ffmpeg`
 
 ## iOS-slave setup
 * Clone mcloud-ios repo
