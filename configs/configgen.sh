@@ -32,7 +32,7 @@ cat << EndOfMessage
       ],
   "configuration":
   {
-    "proxy": "com.qaprosoft.carina.grid.MobileRemoteProxy",
+    "proxy": "com.zebrunner.mcloud.grid.MobileRemoteProxy",
     "url":"http://${HUB_HOST}:${HUB_PORT}/wd/hub",
     "port": ${appium_port},
     "host": "${STF_NODE_HOST}",
