@@ -96,16 +96,26 @@ export NVM_DIR="$HOME/.nvm"
     export ZBR_MCLOUD_HOSTNAME=$ZBR_MCLOUD_HOSTNAME
     export ZBR_MCLOUD_PORT=$ZBR_MCLOUD_PORT
 
-    read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
-    if [[ ! -z $local_hostname ]]; then
-      ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
-    fi
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
+      if [[ ! -z $local_hostname ]]; then
+        ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
+      fi
+      confirm "Current node host address: $ZBR_MCLOUD_NODE_HOSTNAME" "Continue?" "y"
+      is_confirmed=$?
+    done
     export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
 
-    read -p "Appium path [$ZBR_MCLOUD_APPIUM_PATH]: " local_value
-    if [[ ! -z $local_value ]]; then
-      ZBR_MCLOUD_APPIUM_PATH=$local_value
-    fi
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "Appium path [$ZBR_MCLOUD_APPIUM_PATH]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_MCLOUD_APPIUM_PATH=$local_value
+      fi
+      confirm "Appium path: $ZBR_MCLOUD_APPIUM_PATH" "Continue?" "y"
+      is_confirmed=$?
+    done
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
 
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
