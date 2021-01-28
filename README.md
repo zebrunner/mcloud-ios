@@ -23,6 +23,8 @@ Zebrunner Device Farm (iOS slave)
   * `Product -> Test`. When WDA installed and started successfully `Product -> Stop`
 * Install ffmpeg for video recording capabilities
   `brew install ffmpeg`
+* Install zeromq
+  `brew install zeromq`
 
 ## iOS-slave setup
 * Clone mcloud-ios repo
