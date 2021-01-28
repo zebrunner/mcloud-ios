@@ -25,6 +25,7 @@ Zebrunner Device Farm (iOS slave)
   `brew install ffmpeg`
 * Install zeromq
   `brew install zeromq`
+* Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
 
 ## iOS-slave setup
 * Clone mcloud-ios repo
