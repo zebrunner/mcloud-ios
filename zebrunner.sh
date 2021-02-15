@@ -29,15 +29,6 @@ export udid_position=4
 export connectedDevices=${metaDataFolder}/connectedDevices.txt
 export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
-if [ ! -d "$HOME/.nvm" ]; then
-  echo_warning "NVM must be installed as prerequisites!"
-  exit -1
-fi
-
-#load NVM into the bash path
-export NVM_DIR="$HOME/.nvm"
-[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-
 
   print_banner() {
   echo "
@@ -816,6 +807,14 @@ export NVM_DIR="$HOME/.nvm"
 
 
 
+if [ ! -d "$HOME/.nvm" ]; then
+  echo_warning "NVM must be installed as prerequisites!"
+  exit -1
+fi
+
+#load NVM into the bash path
+export NVM_DIR="$HOME/.nvm"
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
 
 case "$1" in
     setup)
