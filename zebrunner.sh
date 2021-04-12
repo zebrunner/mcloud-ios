@@ -296,7 +296,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     udid=$1
     if [ "$udid" == "" ]; then
       syncWDA
-      retun 0
+      return 0
     fi
     #echo udid: $udid
 
