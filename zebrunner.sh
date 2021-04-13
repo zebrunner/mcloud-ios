@@ -120,7 +120,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo "Building iSTF component..."
     if [ ! -d stf ]; then
-      git clone --single-branch --branch master https://github.com/zebrunner/stf.git
+      git clone --single-branch --branch develop https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
