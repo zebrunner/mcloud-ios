@@ -251,7 +251,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
       --device-type ${type} \
-      --provider ${STF_NODE_HOST} --host ${STF_NODE_HOST} \
+      --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
       --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
