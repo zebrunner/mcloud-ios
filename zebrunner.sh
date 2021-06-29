@@ -308,9 +308,14 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
 
     echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
+    scheme=WebDriverAgentRunner
+    if [ "$type" == "tvos" ]; then
+      scheme=WebDriverAgentRunner_tvOS
+    fi
+
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-      -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
+      -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
 
     verifyWDAStartup "logs/wda_${name}.log" 120 >> "logs/wda_${name}.log"
     if [[ $? = 0 ]]; then
