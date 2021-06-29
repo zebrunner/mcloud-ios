@@ -132,6 +132,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cd "${BASEDIR}"
 
     # setup LaunchAgents
+    if [ ! -d $HOME/Library/LaunchAgents ]; then
+      mkdir -p $HOME/Library/LaunchAgents
+    fi
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
     replace $HOME/Library/LaunchAgents/syncZebrunner.plist "working_dir_value" "${BASEDIR}"
     replace $HOME/Library/LaunchAgents/syncZebrunner.plist "user_value" "$USER"
