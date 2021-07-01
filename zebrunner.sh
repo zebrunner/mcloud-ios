@@ -132,6 +132,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cd "${BASEDIR}"
 
     # setup LaunchAgents
+    if [ ! -d $HOME/Library/LaunchAgents ]; then
+      mkdir -p $HOME/Library/LaunchAgents
+    fi
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
     replace $HOME/Library/LaunchAgents/syncZebrunner.plist "working_dir_value" "${BASEDIR}"
     replace $HOME/Library/LaunchAgents/syncZebrunner.plist "user_value" "$USER"
@@ -205,10 +208,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     . ./configs/getDeviceArgs.sh $udid
 
-    if [ "${session_ip}" == "" ]; then
+    if [ "${ip}" == "" ]; then
       echo "Unable to start Appium for '${name}' as it's ip address not detected!" >> "logs/appium_${name}.log"
       exit -1
     fi
+
+    if [ "${session_ip}" == "" ]; then
+      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/appium_${name}.log"
+    fi
+
     echo "Starting appium: ${udid} - device name : ${name}"
 
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
@@ -219,7 +227,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
-     '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${session_ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
+     '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
       --nodeconfig ./metaData/$udid.json >> "logs/appium_${name}.log" 2>&1 &
   }
 
@@ -232,9 +240,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #echo udid: $udid
     . configs/getDeviceArgs.sh $udid
 
-    if [ "${session_ip}" == "" ]; then
+    if [ "${ip}" == "" ]; then
       echo "Unable to start STF for '${name}' as it's ip address not detected!" >> "logs/stf_${name}.log"
       exit -1
+    fi
+
+    if [ "${session_ip}" == "" ]; then
+      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/stf_${name}.log"
     fi
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
@@ -257,7 +269,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
-      --wda-host ${session_ip} --wda-port ${wda_port} \
+      --wda-host ${ip} --wda-port ${wda_port} \
       --appium-port ${appium_port} \
       --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup >> "logs/stf_${name}.log" 2>&1 &
 
@@ -308,9 +320,14 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
 
     echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
+    scheme=WebDriverAgentRunner
+    if [ "$type" == "tvos" ]; then
+      scheme=WebDriverAgentRunner_tvOS
+    fi
+
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-      -scheme WebDriverAgentRunner -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
+      -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
 
     verifyWDAStartup "logs/wda_${name}.log" 120 >> "logs/wda_${name}.log"
     if [[ $? = 0 ]]; then
