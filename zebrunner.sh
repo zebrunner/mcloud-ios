@@ -246,7 +246,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
 
     if [ "${session_ip}" == "" ]; then
-      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/appium_${name}.log"
+      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/stf_${name}.log"
     fi
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
