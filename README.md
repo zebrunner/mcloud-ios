@@ -57,6 +57,14 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 
 * Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents loading on reboot
 
+## Documentation and free support
+* [Zebrunner PRO](https://zebrunner.com)
+* [Zebrunner CE](https://zebrunner.github.io/community-edition)
+* [Zebrunner Reporting](https://zebrunner.com/documentation)
+* [Carina Guide](http://zebrunner.github.io/carina)
+* [Demo Project](https://github.com/zebrunner/carina-demo)
+* [Telegram Channel](https://t.me/zebrunner)
+
 ## License
 Code - [Apache Software License v2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
