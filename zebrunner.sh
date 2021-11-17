@@ -266,7 +266,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
       --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
-      --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
+      --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
       --wda-host ${ip} --wda-port ${wda_port} \
