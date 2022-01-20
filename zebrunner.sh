@@ -398,6 +398,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     stop-stf
     stop-appium
     stop-wda
+
+    pkill -f zebrunner.sh
   }
 
   stop-wda() {
