@@ -44,9 +44,52 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   setup() {
     print_banner
 
-    cp .env.original .env
+    # software prerequisites check like appium, xcode etc
+    which ios-deploy > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as ios-deploy utility is missed!"
+      exit -1
+    fi
 
-    #TODO: add software prerequisites check like nvm, appium, xcode etc
+    which xcodebuild > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as XCode application is missed!"
+      exit -1
+    fi
+
+    which git > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as git is missed!"
+      exit -1
+    fi
+
+    which ffmpeg > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as ffmpeg is missed!"
+      exit -1
+    fi
+
+    which cmake > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as cmake is missed!"
+      exit -1
+    fi
+
+    which appium > /dev/null
+    if [ ! $? -eq 0 ]; then
+      # soft dependency as appium might not be registered in PATH
+      echo_warning "Appium is not detected! Interrupt setup if you don't have it installed!"
+    fi
+
+    which ios > /dev/null
+    if [ ! $? -eq 0 ]; then
+      # soft dependency as go-ios required after service start
+      echo_warning "go-ios utility is missed! Some operations might be broken!"
+    fi
+
+    echo
+
+    cp .env.original .env
 
     # load default interactive installer settings
     source backup/settings.env.original
