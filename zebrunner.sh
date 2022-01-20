@@ -89,8 +89,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo
 
-    cp .env.original .env
-
     # load default interactive installer settings
     source backup/settings.env.original
 
@@ -151,6 +149,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     done
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
 
+    cp .env.original .env
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
     replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
     replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
