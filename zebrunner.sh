@@ -3,6 +3,7 @@
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
+MCLOUD_SERVICE=com.zebrunner.mcloud
 
 if [ -f backup/settings.env ]; then
   source backup/settings.env
@@ -205,8 +206,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
-    # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
+    unload
 
     # Stop existing services: WebDriverAgent, SmartTestFarm and Appium
     stop
@@ -228,9 +228,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
-    #-------------- START EVERYTHING ------------------------------
-    # load LaunchAgents script so all services will be started automatically
-    launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
+    load
+    # initiate kickstart of the syncZebrunner without any pause
+    launchctl kickstart gui/$UID/$MCLOUD_SERVICE
   }
 
   start-services() {
@@ -395,6 +395,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo_warning "MCloud agent services will be stopped but restarted automatically in several seconds because syncZebrunner script is loaded!"
+    fi
+
     stop-stf
     stop-appium
     stop-wda
@@ -482,10 +487,47 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
-
+    unload
     stop
+  }
+
+  load() {
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo_warning "syncZebrunner services already loaded!"
+    else
+      echo "Loading syncZebrunner services..."
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
+    fi
+  }
+
+  unload() {
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ ! $? -eq 0 ]; then
+      echo_warning "syncZebrunner services already unloaded!"
+    else
+      echo "Unloading syncZebrunner services..."
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
+    fi
+  }
+
+  status() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    echo
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo "syncZebrunner services status - LOADED"
+    else
+      echo "syncZebrunner services status - UNLOADED"
+    fi
+    echo
+
+    echo "TODO: #78 implement extended status call for iOS devices and simulators"
   }
 
   backup() {
@@ -679,7 +721,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       Flags:
           --help | -h    Print help
       Arguments:
+          status              Status of the syncZebrunner services
           setup               Setup Device Farm iOS slave
+          load                Load LaunchAgents Zebrunner syncup services
+          unload              Unload LaunchAgents Zebrunner syncup services
           start               Start Device Farm iOS slave services
           start-appium [udid] Start Appium services [all or for exact device by udid]
           start-stf [udid]    Start STF services [all or for exact device by udid]
@@ -883,6 +928,12 @@ case "$1" in
     setup)
         setup
         ;;
+    load)
+        load
+        ;;
+    unload)
+        unload
+        ;;
     start)
         start
         ;;
@@ -931,11 +982,13 @@ case "$1" in
     authorize-simulator)
         syncSimulators
         ;;
+    status)
+        status
+        ;;
     version)
         version
         ;;
     *)
-        echo "Invalid option detected: $1"
         echo_help
         exit 1
         ;;
