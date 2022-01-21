@@ -18,6 +18,7 @@ Zebrunner Device Farm (iOS slave)
   > 8.x node is still required by OpenSTF!
 * Made latest node as default one for example:
   `nvm alias default 14`
+* Install Appium, optionally install opencv module to be able to support [find by image](https://zebrunner.github.io/carina/automation/mobile/#how-to-use-find-by-image-strategy) strategy
 * Sign WebDriverAgent using your Dev Apple certificate and install WebDriverAgent on each device manually
   * Open in XCode <i>APPIUM_HOME</i>/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
   * Choose WebDriverAgentRunner and your device(s)
