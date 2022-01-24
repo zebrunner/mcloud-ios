@@ -163,7 +163,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo "Building iSTF component..."
     if [ ! -d stf ]; then
-      git clone --single-branch --branch master https://github.com/zebrunner/stf.git
+      git clone -b 2.0 --single-branch https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
@@ -206,21 +206,17 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
-    unload
-
-    # Stop existing services: WebDriverAgent, SmartTestFarm and Appium
-    stop
+    down
 
     # remove configuration files and LaunchAgents plist(s)
     git checkout -- devices.txt
+    rm .env
+    rm backup/settings.env
 
     rm -f $HOME/Library/LaunchAgents/syncZebrunner.plist
 
+    echo "Removing devices metadata and STF"
     rm -rf stf
-
-    rm -f ./logs/*.log
-    rm -f ./logs/backup/*.log
-    rm -rf ./tmp/*
     rm -f ./metaData/*
 
   }
