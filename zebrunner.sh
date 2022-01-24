@@ -733,7 +733,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           --help | -h    Print help
       Arguments:
           status              Status of the syncZebrunner services
-          setup               Setup Device Farm iOS slave
+          setup               Setup Devices Farm iOS agent
+          authorize-simulator Authorize whitelisted simulators
           load                Load LaunchAgents Zebrunner syncup services
           unload              Unload LaunchAgents Zebrunner syncup services
           start               Start Device Farm iOS slave services
