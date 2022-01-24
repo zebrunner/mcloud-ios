@@ -548,23 +548,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-#    confirm "" "      Your services will be stopped. Do you want to do a backup now?" "n"
-#    if [[ $? -eq 0 ]]; then
-#      exit
-#    fi
-
     print_banner
 
-    cp devices.txt ./backup/devices.txt
-    cp $HOME/Library/LaunchAgents/syncZebrunner.plist ./backup/syncZebrunner.plist
+    cp .env backup/.env
+    cp backup/settings.env backup/settings.env.bak
+    cp devices.txt backup/devices.txt
+    cp $HOME/Library/LaunchAgents/syncZebrunner.plist backup/syncZebrunner.plist
+    cp metaData/connectedSimulators.txt backup/connectedSimulators.txt
 
-    echo "Backup for Device Farm iOS slave was successfully finished."
-
-#    echo_warning "Your services needs to be started after backup."
-#    confirm "" "      Start now?" "y"
-#    if [[ $? -eq 1 ]]; then
-#      start
-#    fi
+    echo "Backup Devices Farm iOS agent finished."
 
   }
 
@@ -582,8 +574,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
     down
-    cp ./backup/devices.txt devices.txt
-    cp ./backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
+    cp backup/.env .env
+    cp backup/settings.env.bak backup/settings.env
+    cp backup/devices.txt devices.txt
+    cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
+    cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
+
+    echo "Restore Devices Farm iOS agent finished."
 
     echo_warning "Your services needs to be started after restore."
     confirm "" "      Start now?" "y"
