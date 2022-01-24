@@ -373,7 +373,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
 
-    verifyWDAStartup "logs/wda_${name}.log" 120 >> "logs/wda_${name}.log"
+    verifyWDAStartup "logs/wda_${name}.log" 180 >> "logs/wda_${name}.log"
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
