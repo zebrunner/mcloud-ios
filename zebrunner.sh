@@ -544,8 +544,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    print_banner
-
+    echo "Starting Devices Farm iOS agent backup..."
     cp .env backup/.env
     cp backup/settings.env backup/settings.env.bak
     cp devices.txt backup/devices.txt
@@ -559,8 +558,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   }
 
   restore() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+    if [ ! -f backup/settings.env.bak ]; then
+      echo_warning "You have to backup services in advance using: ./zebrunner.sh backup"
       echo_telegram
       exit -1
     fi
@@ -570,10 +569,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit
     fi
 
-    print_banner
-    down
+    # restore .env and settings.env earlier to execute down correctly
     cp backup/.env .env
     cp backup/settings.env.bak backup/settings.env
+
+    down
+
+    echo "Starting Devices Farm iOS agent restore..."
     cp backup/devices.txt devices.txt
     cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
     cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
