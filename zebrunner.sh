@@ -397,7 +397,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
     if [ $? -eq 0 ]; then
-      echo_warning "MCloud agent services will be stopped but restarted automatically in several seconds because syncZebrunner script is loaded!"
+      unload
     fi
 
     stop-stf
@@ -487,8 +487,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    unload
     stop
+
+    # clean logs and metadata
+    echo "Removing los and temp Appium/WDA data..."
+    rm -f ./logs/*.log
+    rm -f ./logs/backup/*.log
+    rm -rf ./tmp/*
   }
 
   load() {
