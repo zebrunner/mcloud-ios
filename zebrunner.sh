@@ -552,6 +552,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cp $HOME/Library/LaunchAgents/syncZebrunner.plist backup/syncZebrunner.plist
     cp metaData/connectedSimulators.txt backup/connectedSimulators.txt
 
+    cp -R stf stf.bak
+
     echo "Backup Devices Farm iOS agent finished."
 
   }
@@ -575,6 +577,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cp backup/devices.txt devices.txt
     cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
     cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
+
+    rm -rf stf
+    cp -R stf.bak stf
 
     echo "Restore Devices Farm iOS agent finished."
 
