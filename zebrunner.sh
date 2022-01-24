@@ -478,7 +478,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    down
+    stop
     start
   }
 
