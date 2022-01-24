@@ -217,6 +217,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     rm -f $HOME/Library/LaunchAgents/syncZebrunner.plist
 
     rm -rf stf
+
+    rm -f ./logs/*.log
+    rm -f ./logs/backup/*.log
+    rm -rf ./tmp/*
+    rm -f ./metaData/*
+
   }
 
   start() {
@@ -490,7 +496,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     stop
 
     # clean logs and metadata
-    echo "Removing los and temp Appium/WDA data..."
+    echo "Removing logs and temp Appium/WebDriverAgent data..."
     rm -f ./logs/*.log
     rm -f ./logs/backup/*.log
     rm -rf ./tmp/*
