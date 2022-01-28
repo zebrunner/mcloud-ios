@@ -3,6 +3,7 @@
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
+MCLOUD_SERVICE=com.zebrunner.mcloud
 
 if [ -f backup/settings.env ]; then
   source backup/settings.env
@@ -44,9 +45,50 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   setup() {
     print_banner
 
-    cp .env.original .env
+    # software prerequisites check like appium, xcode etc
+    which ios-deploy > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as ios-deploy utility is missed!"
+      exit -1
+    fi
 
-    #TODO: add software prerequisites check like nvm, appium, xcode etc
+    which xcodebuild > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as XCode application is missed!"
+      exit -1
+    fi
+
+    which git > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as git is missed!"
+      exit -1
+    fi
+
+    which ffmpeg > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as ffmpeg is missed!"
+      exit -1
+    fi
+
+    which cmake > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as cmake is missed!"
+      exit -1
+    fi
+
+    which appium > /dev/null
+    if [ ! $? -eq 0 ]; then
+      # soft dependency as appium might not be registered in PATH
+      echo_warning "Appium is not detected! Interrupt setup if you don't have it installed!"
+    fi
+
+    which ios > /dev/null
+    if [ ! $? -eq 0 ]; then
+      # soft dependency as go-ios required after service start
+      echo_warning "go-ios utility is missed! Some operations might be broken!"
+    fi
+
+    echo
 
     # load default interactive installer settings
     source backup/settings.env.original
@@ -108,6 +150,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     done
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
 
+    cp .env.original .env
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
     replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
     replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
@@ -120,7 +163,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo "Building iSTF component..."
     if [ ! -d stf ]; then
-      git clone --single-branch --branch master https://github.com/zebrunner/stf.git
+      git clone -b 2.0 --single-branch https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
@@ -163,18 +206,19 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
-    # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
-
-    # Stop existing services: WebDriverAgent, SmartTestFarm and Appium
-    stop
+    down
 
     # remove configuration files and LaunchAgents plist(s)
     git checkout -- devices.txt
+    rm .env
+    rm backup/settings.env
 
     rm -f $HOME/Library/LaunchAgents/syncZebrunner.plist
 
+    echo "Removing devices metadata and STF"
     rm -rf stf
+    rm -f ./metaData/*
+
   }
 
   start() {
@@ -186,9 +230,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
-    #-------------- START EVERYTHING ------------------------------
-    # load LaunchAgents script so all services will be started automatically
-    launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
+    load
+    # initiate kickstart of the syncZebrunner without any pause
+    launchctl kickstart gui/$UID/$MCLOUD_SERVICE
   }
 
   start-services() {
@@ -266,7 +310,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
       --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
-      --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
+      --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
       --wda-host ${ip} --wda-port ${wda_port} \
@@ -329,7 +373,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "logs/wda_${name}.log" 2>&1 &
 
-    verifyWDAStartup "logs/wda_${name}.log" 120 >> "logs/wda_${name}.log"
+    verifyWDAStartup "logs/wda_${name}.log" 180 >> "logs/wda_${name}.log"
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
@@ -353,9 +397,16 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      unload
+    fi
+
     stop-stf
     stop-appium
     stop-wda
+
+    pkill -f zebrunner.sh
   }
 
   stop-wda() {
@@ -427,7 +478,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    down
+    stop
     start
   }
 
@@ -438,10 +489,52 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    # unload LaunchAgents scripts
-    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
-
     stop
+
+    # clean logs and metadata
+    echo "Removing logs and temp Appium/WebDriverAgent data..."
+    rm -f ./logs/*.log
+    rm -f ./logs/backup/*.log
+    rm -rf ./tmp/*
+  }
+
+  load() {
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo_warning "syncZebrunner services already loaded!"
+    else
+      echo "Loading syncZebrunner services..."
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner.plist
+    fi
+  }
+
+  unload() {
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ ! $? -eq 0 ]; then
+      echo_warning "syncZebrunner services already unloaded!"
+    else
+      echo "Unloading syncZebrunner services..."
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner.plist
+    fi
+  }
+
+  status() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    echo
+    launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+      echo "syncZebrunner services status - LOADED"
+    else
+      echo "syncZebrunner services status - UNLOADED"
+    fi
+    echo
+
+    echo "TODO: #78 implement extended status call for iOS devices and simulators"
   }
 
   backup() {
@@ -451,29 +544,22 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-#    confirm "" "      Your services will be stopped. Do you want to do a backup now?" "n"
-#    if [[ $? -eq 0 ]]; then
-#      exit
-#    fi
+    echo "Starting Devices Farm iOS agent backup..."
+    cp .env backup/.env
+    cp backup/settings.env backup/settings.env.bak
+    cp devices.txt backup/devices.txt
+    cp $HOME/Library/LaunchAgents/syncZebrunner.plist backup/syncZebrunner.plist
+    cp metaData/connectedSimulators.txt backup/connectedSimulators.txt
 
-    print_banner
+    cp -R stf stf.bak
 
-    cp devices.txt ./backup/devices.txt
-    cp $HOME/Library/LaunchAgents/syncZebrunner.plist ./backup/syncZebrunner.plist
-
-    echo "Backup for Device Farm iOS slave was successfully finished."
-
-#    echo_warning "Your services needs to be started after backup."
-#    confirm "" "      Start now?" "y"
-#    if [[ $? -eq 1 ]]; then
-#      start
-#    fi
+    echo "Backup Devices Farm iOS agent finished."
 
   }
 
   restore() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+    if [ ! -f backup/settings.env.bak ]; then
+      echo_warning "You have to backup services in advance using: ./zebrunner.sh backup"
       echo_telegram
       exit -1
     fi
@@ -483,10 +569,21 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit
     fi
 
-    print_banner
+    # restore .env and settings.env earlier to execute down correctly
+    cp backup/.env .env
+    cp backup/settings.env.bak backup/settings.env
+
     down
-    cp ./backup/devices.txt devices.txt
-    cp ./backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
+
+    echo "Starting Devices Farm iOS agent restore..."
+    cp backup/devices.txt devices.txt
+    cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
+    cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
+
+    rm -rf stf
+    cp -R stf.bak stf
+
+    echo "Restore Devices Farm iOS agent finished."
 
     echo_warning "Your services needs to be started after restore."
     confirm "" "      Start now?" "y"
@@ -635,7 +732,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       Flags:
           --help | -h    Print help
       Arguments:
-          setup               Setup Device Farm iOS slave
+          status              Status of the syncZebrunner services
+          setup               Setup Devices Farm iOS agent
+          authorize-simulator Authorize whitelisted simulators
+          load                Load LaunchAgents Zebrunner syncup services
+          unload              Unload LaunchAgents Zebrunner syncup services
           start               Start Device Farm iOS slave services
           start-appium [udid] Start Appium services [all or for exact device by udid]
           start-stf [udid]    Start STF services [all or for exact device by udid]
@@ -839,6 +940,12 @@ case "$1" in
     setup)
         setup
         ;;
+    load)
+        load
+        ;;
+    unload)
+        unload
+        ;;
     start)
         start
         ;;
@@ -887,11 +994,13 @@ case "$1" in
     authorize-simulator)
         syncSimulators
         ;;
+    status)
+        status
+        ;;
     version)
         version
         ;;
     *)
-        echo "Invalid option detected: $1"
         echo_help
         exit 1
         ;;
