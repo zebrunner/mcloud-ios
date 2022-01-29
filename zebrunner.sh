@@ -407,6 +407,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     stop-wda
 
     pkill -f zebrunner.sh
+    # clean logs
+    echo "Removing logs..."
+    rm -f ./logs/*.log
+    rm -f ./logs/backup/*.log
   }
 
   stop-wda() {
@@ -427,7 +431,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       rm -f ${metaDataFolder}/ip_*.txt
       rm -f ${metaDataFolder}/session_*.txt
     fi
-    echo pids: $pids
+    #echo pids: $pids
 
     kill_processes $pids
   }
@@ -491,10 +495,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     stop
 
-    # clean logs and metadata
-    echo "Removing logs and temp Appium/WebDriverAgent data..."
-    rm -f ./logs/*.log
-    rm -f ./logs/backup/*.log
+    # clean metadata
+    echo "Removing temp Appium/WebDriverAgent data..."
     rm -rf ./tmp/*
   }
 
@@ -653,7 +655,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   {
     processes_pids=$*
     if [ "${processes_pids}" != "" ]; then
-     echo processes_pids to kill: $processes_pids
+     #echo processes_pids to kill: $processes_pids
      kill -9 $processes_pids
     fi
   }
