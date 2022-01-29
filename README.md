@@ -1,22 +1,19 @@
 Zebrunner Device Farm (iOS slave)
 ==================
 
-* It is built on the top of [OpenSTF](https://github.com/openstf) with supporting iOS devices remote control.
+Feel free to support the development with a [**donation**](https://www.paypal.com/donate?hosted_button_id=JLQ4U468TWQPS) for the next improvements.
 
-## Contents
-* [Software prerequisites](#software-prerequisites)
-* [iSTF components setup](#istf-components-setup)
-* [iOS-slave setup](#ios-slave-setup)
-* [Setup sync scripts via Launch Agents for Appium, WDA and STF services](#setup-sync-scripts-via-launch-agents-for-appium-wda-and-stf-services)
-* [License](#license)
+<p align="center">
+  <a href="https://zebrunner.com/"><img alt="Zebrunner" src="https://github.com/zebrunner/zebrunner/raw/master/docs/img/zebrunner_intro.png"></a>
+</p>
 
 ## Software prerequisites
 * Install XCode 11.2+
 * Install [nvm](https://github.com/nvm-sh/nvm) version manager
   > NVM required to organize automatic switch between nodes
-* Using NVM install v8.17.0 and latest Appium compatible node version
+* Using NVM install v8.17.0 and the latest Appium compatible node version
   > 8.x node is still required by OpenSTF!
-* Made latest node as default one for example:
+* Make the latest node as default one, for example:
   `nvm alias default 14`
 * Install Appium, optionally install opencv module to be able to support [find by image](https://zebrunner.github.io/carina/automation/mobile/#how-to-use-find-by-image-strategy) strategy
 * Sign WebDriverAgent using your Dev Apple certificate and install WebDriverAgent on each device manually
@@ -52,15 +49,23 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 ./zebrunner.sh setup
 ```
 
-* Provide required arguments during setup
+* Provide the required arguments during the setup
 
-* <b>Important!</b> Everytime you create new Simulator(s) via XCode you have to run `authorize-simulator` command to authorize it and add new line into devices.txt to whitelist
+* <b>Important!</b> Everytime you create new Simulator(s) via XCode, you have to add a new line into devices.txt to whitelist and run `authorize-simulator` command to authorize
 ```
 ./zebrunner.sh authorize-simulator
 ```
-  > it is enough to run `./zebrunner.sh authorize-simulator` command at once after generating multiply simulators
+  > It is enough to run `./zebrunner.sh authorize-simulator` command at once after generating multiple simulators
 
-* Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents load on reboot
+* Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents loading on reboot
+
+## Documentation and free support
+* [Zebrunner PRO](https://zebrunner.com)
+* [Zebrunner CE](https://zebrunner.github.io/community-edition)
+* [Zebrunner Reporting](https://zebrunner.com/documentation)
+* [Carina Guide](http://zebrunner.github.io/carina)
+* [Demo Project](https://github.com/zebrunner/carina-demo)
+* [Telegram Channel](https://t.me/zebrunner)
 
 ## License
 Code - [Apache Software License v2.0](http://www.apache.org/licenses/LICENSE-2.0)

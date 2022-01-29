@@ -2,9 +2,11 @@
 nohup.out
 backup/*
 logs/*
-metaData/*.txt
+metaData/*.env
 metaData/*.json
 .DS_Store
 *.bak
 tmp/*
 stf
+*.mp4
+*.log
