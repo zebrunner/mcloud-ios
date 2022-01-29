@@ -267,7 +267,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
-     '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
+     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
       --nodeconfig ./metaData/$udid.json >> "${APPIUM_LOG}" 2>&1 &
   }
 
@@ -300,7 +300,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --device-name ${name} \
       --device-type ${type} \
       --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
-      --screen-port ${stf_screen_port} --connect-port ${mjpeg_port} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
+      --screen-port ${stf_screen_port} --connect-port ${MJPEG_PORT} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
@@ -355,7 +355,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       mv "${WDA_LOG}" "logs/backup/wda_${name}_`date +"%T"`.log"
     fi
 
-    echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, mjpeg_port: ${mjpeg_port}
+    echo Starting WDA: ${name}, udid: ${udid}, wda_port: ${wda_port}, MJPEG_PORT: ${MJPEG_PORT}
     scheme=WebDriverAgentRunner
     if [ "$type" == "tvos" ]; then
       scheme=WebDriverAgentRunner_tvOS
@@ -363,7 +363,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-      -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$mjpeg_port test > "${WDA_LOG}" 2>&1 &
+      -scheme $scheme -destination id=$udid USE_PORT=$wda_port MJPEG_SERVER_PORT=$MJPEG_PORT test > "${WDA_LOG}" 2>&1 &
 
     verifyWDAStartup "${WDA_LOG}" 180 >> "${WDA_LOG}"
     if [[ $? = 0 ]]; then
