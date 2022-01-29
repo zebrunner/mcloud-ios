@@ -13,6 +13,9 @@ devices=${BASEDIR}/devices.txt
 name=`cat ${devices} | grep "$udid" | cut -d '|' -f 1`
 export name=$(echo $name)
 
+DEVICE_NAME=`cat ${devices} | grep "$udid" | cut -d '|' -f 1`
+export DEVICE_NAME=$(echo $DEVICE_NAME)
+
 type=`cat ${devices} | grep "$udid" | cut -d '|' -f 2`
 export type=$(echo $type)
 
