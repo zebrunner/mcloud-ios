@@ -230,16 +230,31 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     print_banner
 
+    udid=$1
+    if [ ! -z $udid ]; then
+      . ./configs/getDeviceArgs.sh $udid
+      echo "Starting MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
+      start-wda $udid
+      start-appium $udid
+      start-stf $udid
+
+      return 0
+    fi
+
+
     load
-    # initiate kickstart of the syncZebrunner without any pause
+    echo "Starting MCloud services..."
+    # initiate kickstart of the syncZebrunner without any pause. It should execute start-services function asap
     launchctl kickstart gui/$UID/$MCLOUD_SERVICE
   }
 
   start-services() {
     syncDevices
-    syncWDA
-    syncAppium
-    syncSTF
+    syncServices
+
+    #syncWDA
+    #syncAppium
+    #syncSTF
   }
 
   start-appium() {
@@ -314,7 +329,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   start-session() {
     # start WDA session correctly generating obligatory snapshot for default 'com.apple.springboard' application.
     udid=$1
-    echo "Starting WDA session for $udid..."
+    echo "Starting 1st WDA session for $DEVICE_NAME udid: $DEVICE_UDID..."
     . ./configs/getDeviceArgs.sh $udid
 
     echo "ip: ${WDA_HOST}; port: ${WDA_PORT}"
@@ -345,7 +360,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       syncWDA
       return 0
     fi
-    echo udid: $udid
+    #echo udid: $udid
 
     . ./configs/getDeviceArgs.sh $udid
 
@@ -390,6 +405,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
+    echo "Stopping MCloud services..."
+
     launchctl list $MCLOUD_SERVICE > /dev/null 2>&1
     if [ $? -eq 0 ]; then
       unload
@@ -417,7 +434,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #echo udid: $udid
     if [ "$udid" != "" ]; then
       export pids=`ps -eaf | grep ${udid} | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
+      . ./configs/getDeviceArgs.sh $udid
       rm -fv "${WDA_ENV}"
+    else
+      export pids=`ps -eaf | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
+      rm -fv ${metaDataFolder}/*.env
     fi
     #echo pids: $pids
 
@@ -454,8 +475,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #echo udid: $udid
     if [ "$udid" != "" ]; then
       export pids=`ps -eaf | grep ${udid} | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+      rm -fv ${metaDataFolder}/${udid}.json
     else 
       export pids=`ps -eaf | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+      rm -fv ${metaDataFolder}/*.json
     fi
     #echo pids: $pids
 
@@ -756,6 +779,98 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     simulatorsFile=${metaDataFolder}/connectedSimulators.txt
     # xcrun xctrace list devices - this command can not be used because it returns physical devices as well
     xcrun simctl list | grep -v "Unavailable" | grep -v "unavailable" > ${simulatorsFile}
+  }
+
+  syncServices() {
+    echo `date +"%T"` Sync MCloud Services script started
+
+    # verify one by one connected devices and authorized simulators
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      if [ "$udid" = "UDID" ]; then
+        continue
+      fi
+      . ${BASEDIR}/configs/getDeviceArgs.sh $udid
+
+      ########## WDA SERVICES ##########
+      # unale to reuse WDA_HOST/WDA_PORT and status call as service might not be started
+      wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
+
+      physical=`cat ${connectedDevices} | grep $udid`
+      simulator=`cat ${connectedSimulators} | grep $udid`
+      device="$physical$simulator"
+      #echo device: $device
+      #echo wda: $wda
+
+      if [[ -n "$device" &&  -z "$wda" ]]; then
+        # simultaneous WDA launch is not supported by Xcode!
+        # error: error: accessing build database "/Users/../Library/Developer/Xcode/DerivedData/WebDriverAgent-../XCBuildData/build.db": database is locked
+        # Possibly there are two concurrent builds running in the same filesystem location.
+        ${BASEDIR}/zebrunner.sh start-wda $udid
+        ${BASEDIR}/zebrunner.sh start-session $udid
+      elif [[ -z "$device" &&  -n "$wda" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device}" ]]; then
+          echo "WDA will be stopped: ${udid} - device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-wda $udid &
+        fi
+      fi
+
+      ########## APPIUM SERVICES ##########
+      appium=`ps -ef | grep ${APPIUM_HOME}/build/lib/main.js  | grep $udid`
+
+      wda=${WDA_ENV}
+      if [[ -n "$appium" && ! -f "$wda" ]]; then
+        echo "Stopping Appium process as no WebDriverAgent process detected. ${udid} device name : ${name}"
+        ${BASEDIR}/zebrunner.sh stop-appium $udid &
+        continue
+      fi
+
+      if [[ -n "$device" && -f "$wda" && -z "$appium" ]]; then
+        ${BASEDIR}/zebrunner.sh start-appium $udid &
+      elif [[ -z "$device" &&  -n "$appium" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device}" ]]; then
+          echo "Appium will be stopped: ${udid} - device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-appium $udid &
+        fi
+      fi
+
+      ########## STF SERVICES ##########
+      if [[ -n "$simulator" ]]; then
+        # https://github.com/zebrunner/stf/issues/168
+        # simulators temporary unavailable in iSTF
+        continue
+      fi
+
+      device="$physical$simulator"
+      #echo device: $device
+
+      stf=`ps -eaf | grep ${udid} | grep 'ios-device' | grep -v grep`
+      wda=${WDA_ENV}
+      if [[ -n "$stf" && ! -f "$wda" ]]; then
+        echo "Stopping STF process as no WebDriverAgent process detected. ${udid} device name : ${name}"
+        ${BASEDIR}/zebrunner.sh stop-stf $udid &
+        continue
+      fi
+
+      if [[ -n "$device" && -f "$wda" && -z "$stf" ]]; then
+        ${BASEDIR}/zebrunner.sh start-stf $udid &
+      elif [[ -z "$device" && -n "$stf" ]]; then
+        #double check for the case when connctedDevices.txt in sync and empty
+        device_status=`/usr/local/bin/ios-deploy -c -t 5 | grep ${udid}`
+        if [[ -z "${device_status}" ]]; then
+          echo "The iSTF ios-device will be stopped: ${udid} device name : ${name}"
+          ${BASEDIR}/zebrunner.sh stop-stf $udid &
+        fi
+      fi
+
+    done < ${devices}
   }
 
   syncWDA() {
