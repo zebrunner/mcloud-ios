@@ -401,8 +401,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     pkill -f zebrunner.sh
     # clean logs
     echo "Removing logs..."
-    rm -f ./logs/*.log
-    rm -f ./logs/backup/*.log
+    rm -fv ./logs/*.log
+    rm -fv ./logs/backup/*.log
   }
 
   stop-wda() {
