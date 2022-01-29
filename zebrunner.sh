@@ -217,8 +217,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo "Removing devices metadata and STF"
     rm -rf stf
-    rm -f ./metaData/*
-
+    rm -f ./metaData/*.env
+    rm -f ./metaData/*.json
   }
 
   start() {
@@ -337,7 +337,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
     rm -f ${sessionFile}
 
-    cp ${metaDataFolder}/ip_${udid}.txt ${metaDataFolder}/session_${udid}.txt
   }
 
   start-wda() {
@@ -346,7 +345,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       syncWDA
       return 0
     fi
-    #echo udid: $udid
+    echo udid: $udid
 
     . ./configs/getDeviceArgs.sh $udid
 
@@ -375,10 +374,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       # remove forward slashes
       WDA_HOST="${WDA_HOST//\//}"
       # put IP address into the metadata file
-      echo "${WDA_HOST}" > ${metaDataFolder}/ip_${udid}.txt
+      echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
+      echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
+      echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
     else
       # WDA is not started successfully!
-      rm -f ${metaDataFolder}/ip_${udid}.txt
+      rm -fv "${WDA_ENV}"
     fi
   }
 
@@ -416,12 +417,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #echo udid: $udid
     if [ "$udid" != "" ]; then
       export pids=`ps -eaf | grep ${udid} | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
-      rm -f ${metaDataFolder}/ip_${udid}.txt
-      rm -f ${metaDataFolder}/session_${udid}.txt
-    else
-      export pids=`ps -eaf | grep xcodebuild | grep 'WebDriverAgent' | grep -v grep | grep -v stop-wda | awk '{ print $2 }'`
-      rm -f ${metaDataFolder}/ip_*.txt
-      rm -f ${metaDataFolder}/session_*.txt
+      rm -fv "${WDA_ENV}"
     fi
     #echo pids: $pids
 
@@ -791,6 +787,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       simulator=`cat ${connectedSimulators} | grep $udid`
       device="$physical$simulator"
       #echo device: $device
+      #echo wda: $wda
 
       if [[ -n "$device" &&  -z "$wda" ]]; then
         # simultaneous WDA launch is not supported by Xcode!
@@ -829,9 +826,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       device="$physical$simulator"
       #echo device: $device
 
-      wda=${metaDataFolder}/ip_${udid}.txt
-      #echo wda: $wda
-
+      wda=${WDA_ENV}
       if [[ -n "$appium" && ! -f "$wda" ]]; then
         echo "Stopping Appium process as no WebDriverAgent process detected. ${udid} device name : ${name}"
         ${BASEDIR}/zebrunner.sh stop-appium $udid &
@@ -877,7 +872,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       #echo device: $device
 
       stf=`ps -eaf | grep ${udid} | grep 'ios-device' | grep -v grep`
-      wda=${metaDataFolder}/ip_${udid}.txt
+      wda=${WDA_ENV}
       if [[ -n "$stf" && ! -f "$wda" ]]; then
         echo "Stopping STF process as no WebDriverAgent process detected. ${udid} device name : ${name}"
         ${BASEDIR}/zebrunner.sh stop-stf $udid &
