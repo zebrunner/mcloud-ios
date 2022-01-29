@@ -53,3 +53,4 @@ export session_ip=$(echo $session_ip)
 
 
 export APPIUM_LOG="logs/appium_${name}.log"
+export STF_LOG="logs/stf_${name}.log"

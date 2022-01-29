@@ -281,7 +281,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     . configs/getDeviceArgs.sh $udid
 
     if [ "${ip}" == "" ]; then
-      echo "Unable to start STF for '${name}' as it's ip address not detected!" >> "logs/stf_${name}.log"
+      echo "Unable to start STF for '${name}' as it's ip address not detected!"
       exit -1
     fi
 
@@ -307,7 +307,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
       --wda-host ${ip} --wda-port ${wda_port} \
       --appium-port ${appium_port} \
-      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup >> "logs/stf_${name}.log" 2>&1 &
+      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup >> "${STF_LOG}" 2>&1 &
 
   }
 
