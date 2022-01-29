@@ -28,8 +28,8 @@ export DEVICE_UDID=$(echo $DEVICE_UDID)
 appium_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 5`
 export appium_port=$(echo $appium_port)
 
-wda_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 6`
-export wda_port=$(echo $wda_port)
+WDA_PORT=`cat ${devices} | grep "$udid" | cut -d '|' -f 6`
+export WDA_PORT=$(echo $WDA_PORT)
 
 MJPEG_PORT=`cat ${devices} | grep "$udid" | cut -d '|' -f 7`
 export MJPEG_PORT=$(echo $MJPEG_PORT)
