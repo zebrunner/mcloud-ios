@@ -268,7 +268,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     newWDA=false
     #TODO: investigate if tablet should be registered separately, what about tvOS
 
-    nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-timestamp --device-name "${name}" --udid $udid \
+    nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
      '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
