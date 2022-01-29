@@ -252,7 +252,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     . ./configs/getDeviceArgs.sh $udid
 
-    if [ "${ip}" == "" ]; then
+    if [ "${WDA_HOST}" == "" ]; then
       echo_warning "Unable to start Appium for '${name}' as Device IP not detected!"
       exit -1
     fi
@@ -267,7 +267,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
-     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${WDA_PORT}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
+     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
       --nodeconfig ./metaData/$udid.json >> "${APPIUM_LOG}" 2>&1 &
   }
 
@@ -280,7 +280,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #echo udid: $udid
     . configs/getDeviceArgs.sh $udid
 
-    if [ "${ip}" == "" ]; then
+    if [ "${WDA_HOST}" == "" ]; then
       echo "Unable to start STF for '${name}' as it's ip address not detected!"
       exit -1
     fi
@@ -305,7 +305,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
-      --wda-host ${ip} --wda-port ${WDA_PORT} \
+      --wda-host ${WDA_HOST} --wda-port ${WDA_PORT} \
       --appium-port ${appium_port} \
       --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup >> "${STF_LOG}" 2>&1 &
 
@@ -317,11 +317,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     echo "Starting WDA session for $udid..."
     . ./configs/getDeviceArgs.sh $udid
 
-    echo "ip: ${ip}; port: ${WDA_PORT}"
+    echo "ip: ${WDA_HOST}; port: ${WDA_PORT}"
 
     # start new WDA session with default 60 sec snapshot timeout
     sessionFile=${metaDataFolder}/tmp_${udid}.txt
-    curl --silent --location --request POST "http://${ip}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
+    curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
 
     bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
     #echo bundleId: $bundleId
@@ -331,9 +331,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     if [[ "$bundleId" != "com.apple.springboard" ]]; then
       echo  "Activating springboard app forcibly..."
-      curl --silent --location --request POST "http://${ip}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "com.apple.springboard"}'
+      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "com.apple.springboard"}'
       sleep 1
-      curl --silent --location --request POST "http://${ip}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}'
+      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}'
     fi
     rm -f ${sessionFile}
 
@@ -371,11 +371,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       # parse ip address from log file line:
       # 2020-07-13 17:15:15.295128+0300 WebDriverAgentRunner-Runner[5660:22940482] ServerURLHere->http://192.168.88.127:20001<-ServerURLHere
 
-      ip=`grep "ServerURLHere->" "${WDA_LOG}" | cut -d ':' -f 5`
+      WDA_HOST=`grep "ServerURLHere->" "${WDA_LOG}" | cut -d ':' -f 5`
       # remove forward slashes
-      ip="${ip//\//}"
+      WDA_HOST="${WDA_HOST//\//}"
       # put IP address into the metadata file
-      echo "${ip}" > ${metaDataFolder}/ip_${udid}.txt
+      echo "${WDA_HOST}" > ${metaDataFolder}/ip_${udid}.txt
     else
       # WDA is not started successfully!
       rm -f ${metaDataFolder}/ip_${udid}.txt
