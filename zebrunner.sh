@@ -193,7 +193,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
   shutdown() {
     if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup MCloud iOS slave in advance using: ./zebrunner.sh setup"
+      echo_warning "You have to setup MCloud iOS agent in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
     fi
@@ -759,12 +759,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           unload              Unload LaunchAgents Zebrunner syncup services
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
           stop [udid]         Stop Device Farm iOS agent services and remove logs [all or for exact device by udid]
-          restart             Restart Device Farm iOS slave services
-          down                Stop Device Farm iOS slave services, remove logs and Appium/WDA temp data
-          shutdown            Destroy Device Farm iOS slave completely
-          backup              Backup Device Farm iOS slave services
-          restore             Restore Device Farm iOS slave services
-          version             Version of Device Farm iOS slave"
+          restart             Restart Device Farm iOS agent services
+          down                Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data
+          shutdown            Destroy Device Farm iOS agent completely
+          backup              Backup Device Farm iOS agent services
+          restore             Restore Device Farm iOS agent services
+          version             Version of Device Farm iOS agent"
       echo_telegram
       exit 0
   }
