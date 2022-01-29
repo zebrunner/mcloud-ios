@@ -253,12 +253,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ "${ip}" == "" ]; then
-      echo "Unable to start Appium for '${name}' as it's ip address not detected!" >> "logs/appium_${name}.log"
+      echo_warning "Unable to start Appium for '${name}' as Device IP not detected!"
       exit -1
-    fi
-
-    if [ "${session_ip}" == "" ]; then
-      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/appium_${name}.log"
     fi
 
     echo "Starting appium: ${udid} - device name : ${name}"
@@ -272,7 +268,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
      '{"mjpegServerPort": '${mjpeg_port}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${ip}:${wda_port}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$wda_port'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
-      --nodeconfig ./metaData/$udid.json >> "logs/appium_${name}.log" 2>&1 &
+      --nodeconfig ./metaData/$udid.json >> "${APPIUM_LOG}" 2>&1 &
   }
 
   start-stf() {
@@ -287,10 +283,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     if [ "${ip}" == "" ]; then
       echo "Unable to start STF for '${name}' as it's ip address not detected!" >> "logs/stf_${name}.log"
       exit -1
-    fi
-
-    if [ "${session_ip}" == "" ]; then
-      echo_warning "Integration with STF might be broken/slow as WDA session was not detected!" >> "logs/stf_${name}.log"
     fi
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
