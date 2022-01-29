@@ -743,12 +743,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           start-appium [udid] Start Appium services [all or for exact device by udid]
           start-stf [udid]    Start STF services [all or for exact device by udid]
           start-wda [udid]    Start WDA services [all or for exact device by udid]
-          stop                Stop Device Farm iOS slave services
+          stop                Stop Device Farm iOS slave services and remove logs
           stop-appium [udid]  Stop Appium services [all or for exact device by udid]
           stop-stf [udid]     Stop STF services [all or for exact device by udid]
           stop-wda [udid]     Stop WebDriverAgent services [all or for exact device by udid]
           restart             Restart Device Farm iOS slave services
-          down                Stop Device Farm iOS slave services and disable LaunchAgent services
+          down                Stop Device Farm iOS slave services, remove logs and Appium/WDA temp data
           shutdown            Destroy Device Farm iOS slave completely
           backup              Backup Device Farm iOS slave services
           restore             Restore Device Farm iOS slave services
