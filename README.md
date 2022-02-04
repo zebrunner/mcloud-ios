@@ -75,6 +75,11 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
   ln -s $HOME/tools/appium/files/stop-capture-artifacts.sh /opt/
   ln -s $HOME/tools/appium/files/upload-artifacts.sh /opt/
   ```
+* Install aws cli: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+* Configure aws using your s3 access and secret keys, region etc
+  ```
+  aws configure
+  ```
 * Restart services using `./zebrunner.sh restart`
 
 ## Documentation and free support
