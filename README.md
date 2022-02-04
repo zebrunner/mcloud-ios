@@ -59,6 +59,24 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 
 * Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents loading on reboot
 
+### Patch appium to enable video recordings
+* Clone https://github.com/zebrunner/appium.git
+* Patch appium files:
+  ```
+  cd appium
+  export APPIUM_HOME=/usr/lib/node_modules/appium
+  cp -R -v ./files/mcloud/* ${APPIUM_HOME}/node_modules
+  ```
+* Generate symlinks to shell scripts:
+  ```
+  ln -s $HOME/tools/appium/files/concat-video-recordings.sh /opt/
+  ln -s $HOME/tools/appium/files/reset-logs.sh /opt/
+  ln -s $HOME/tools/appium/files/start-capture-artifacts.sh /opt/
+  ln -s $HOME/tools/appium/files/stop-capture-artifacts.sh /opt/
+  ln -s $HOME/tools/appium/files/upload-artifacts.sh /opt/
+  ```
+* Restart services using `./zebrunner.sh restart`
+
 ## Documentation and free support
 * [Zebrunner PRO](https://zebrunner.com)
 * [Zebrunner CE](https://zebrunner.github.io/community-edition)
