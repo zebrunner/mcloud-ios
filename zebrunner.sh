@@ -274,6 +274,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     newWDA=false
     #TODO: investigate if tablet should be registered separately, what about tvOS
 
+    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
+
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
