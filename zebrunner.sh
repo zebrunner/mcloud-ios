@@ -98,7 +98,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       source backup/settings.env
     fi
 
-    export ZBR_MCLOUD_IOS_VERSION=1.0
+    export ZBR_MCLOUD_IOS_VERSION=2.0
 
     # Setup MCloud master host settings: protocol, hostname and port
     echo "MCloud SmartTestFarm Settings"
