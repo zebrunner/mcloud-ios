@@ -179,7 +179,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       replace .env "WEB_PROTOCOL=http" "WEB_PROTOCOL=https"
     fi
 
-    echo "Building iSTF component..."
+    echo
+    echo "Pull STF updates:"
     if [ ! -d stf ]; then
       git clone -b 2.0 --single-branch https://github.com/zebrunner/stf.git
       cd stf
@@ -187,9 +188,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       cd stf
       git pull
     fi
-    nvm use v8
-    npm install
-    npm link --force
+
+    echo
+    confirm "Rebuild STF sources?" "Confirm?" "y"
+    if [[ $? -eq 1 ]]; then
+      echo "Building iSTF component..."
+      nvm use v8
+      npm install
+      npm link --force
+    fi
     cd "${BASEDIR}"
 
     # setup LaunchAgents
