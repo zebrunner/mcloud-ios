@@ -10,3 +10,5 @@ tmp/*
 stf
 *.mp4
 *.log
+metaData/connectedDevices.txt
+metaData/connectedSimulators.txt
