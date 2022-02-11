@@ -128,6 +128,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZBR_MCLOUD_HOSTNAME=$ZBR_MCLOUD_HOSTNAME
     export ZBR_MCLOUD_PORT=$ZBR_MCLOUD_PORT
 
+    echo 
+
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
       read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
@@ -139,6 +141,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     done
     export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
 
+    echo 
+
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
       read -p "Appium path [$ZBR_MCLOUD_APPIUM_PATH]: " local_value
@@ -149,6 +153,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       is_confirmed=$?
     done
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
+
+    echo
+    confirm "S3 storage for storing video and log artifacts." "Enable?" "y"
+    if [[ $? -eq 1 ]]; then
+      set_storage_settings
+    fi
 
     cp .env.original .env
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
@@ -273,6 +283,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     newWDA=false
     #TODO: investigate if tablet should be registered separately, what about tvOS
+
+    export BUCKET=$ZBR_STORAGE_BUCKET
+    export TENANT=$ZBR_STORAGE_TENANT
+    #TODO: test tvOS and maybe parametrize using valid platform name detected by go-ios utility
+    export PLATFORM_NAME=ios
 
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
@@ -892,6 +907,34 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     printf '%s' "$content" >$file    # write new content to disk
   }
+
+set_storage_settings() {
+  ## AWS S3 compatible storage
+  local is_confirmed=0
+  #TODO: provide a link to documentation howto create valid S3 bucket
+  echo
+  echo "AWS S3 storage"
+  while [[ $is_confirmed -eq 0 ]]; do
+    read -r -p "Bucket [$ZBR_STORAGE_BUCKET]: " local_bucket
+    if [[ ! -z $local_bucket ]]; then
+      ZBR_STORAGE_BUCKET=$local_bucket
+    fi
+
+    read -r -p "[Optional] Tenant [$ZBR_STORAGE_TENANT]: " local_value
+    if [[ ! -z $local_value ]]; then
+      ZBR_STORAGE_TENANT=$local_value
+    fi
+
+    echo "Bucket: $ZBR_STORAGE_BUCKET"
+    echo "Tenant: $ZBR_STORAGE_TENANT"
+    confirm "" "Continue?" "y"
+    is_confirmed=$?
+  done
+
+  export ZBR_STORAGE_BUCKET=$ZBR_STORAGE_BUCKET
+  export ZBR_STORAGE_TENANT=$ZBR_STORAGE_TENANT
+}
+
 
 if [ ! -d "$HOME/.nvm" ]; then
   echo_warning "NVM must be installed as prerequisites!"
