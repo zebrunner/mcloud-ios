@@ -338,6 +338,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     STF_CLI=`echo "${STF_BIN//bin\/stf/lib/node_modules/@devicefarmer/stf/lib/cli}"`
     #echo STF_CLI: $STF_CLI
 
+    export ZMQ_TCP_KEEPALIVE=1
+    export ZMQ_TCP_KEEPALIVE_IDLE=600
+
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
       --device-type ${type} \
