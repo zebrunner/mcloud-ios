@@ -297,6 +297,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #TODO: test tvOS and maybe parametrize using valid platform name detected by go-ios utility
     export PLATFORM_NAME=ios
     export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
+    export APPIUM_APP_WAITING_TIMEOUT=600
 
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
