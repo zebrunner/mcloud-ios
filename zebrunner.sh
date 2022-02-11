@@ -98,7 +98,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       source backup/settings.env
     fi
 
-    export ZBR_MCLOUD_IOS_VERSION=1.0
+    export ZBR_MCLOUD_IOS_VERSION=2.0
 
     # Setup MCloud master host settings: protocol, hostname and port
     echo "MCloud SmartTestFarm Settings"
@@ -128,16 +128,27 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZBR_MCLOUD_HOSTNAME=$ZBR_MCLOUD_HOSTNAME
     export ZBR_MCLOUD_PORT=$ZBR_MCLOUD_PORT
 
+    echo 
+
+    echo "MCloud iOS Agent Settings"
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
       read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
       if [[ ! -z $local_hostname ]]; then
         ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
       fi
-      confirm "Current node host address: $ZBR_MCLOUD_NODE_HOSTNAME" "Continue?" "y"
+
+      read -p "Current node name [$ZBR_MCLOUD_NODE_NAME]: " local_name
+      if [[ ! -z $local_name ]]; then
+        ZBR_MCLOUD_NODE_NAME=$local_name
+      fi
+      confirm "Node host address: $ZBR_MCLOUD_NODE_HOSTNAME; Node name: $ZBR_MCLOUD_NODE_NAME" "Continue?" "y"
       is_confirmed=$?
     done
     export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
+    export ZBR_MCLOUD_NODE_NAME=$ZBR_MCLOUD_NODE_NAME
+
+    echo 
 
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
@@ -150,10 +161,17 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     done
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
 
+    echo
+    confirm "S3 storage for storing video and log artifacts." "Enable?" "y"
+    if [[ $? -eq 1 ]]; then
+      set_storage_settings
+    fi
+
     cp .env.original .env
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
     replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
     replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
+    replace .env "node_name_value" "$ZBR_MCLOUD_NODE_NAME"
     replace .env "appium_path_value" "$ZBR_MCLOUD_APPIUM_PATH"
 
     if [ "$ZBR_MCLOUD_PROTOCOL" == "https" ]; then
@@ -161,7 +179,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       replace .env "WEB_PROTOCOL=http" "WEB_PROTOCOL=https"
     fi
 
-    echo "Building iSTF component..."
+    echo
+    echo "Pull STF updates:"
     if [ ! -d stf ]; then
       git clone -b 2.0 --single-branch https://github.com/zebrunner/stf.git
       cd stf
@@ -169,9 +188,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       cd stf
       git pull
     fi
-    nvm use v8
-    npm install
-    npm link --force
+
+    echo
+    confirm "Rebuild STF sources?" "Confirm?" "y"
+    if [[ $? -eq 1 ]]; then
+      echo "Building iSTF component..."
+      nvm use v8
+      npm install
+      npm link --force
+    fi
     cd "${BASEDIR}"
 
     # setup LaunchAgents
@@ -274,6 +299,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     newWDA=false
     #TODO: investigate if tablet should be registered separately, what about tvOS
 
+    export BUCKET=$ZBR_STORAGE_BUCKET
+    export TENANT=$ZBR_STORAGE_TENANT
+    #TODO: test tvOS and maybe parametrize using valid platform name detected by go-ios utility
+    export PLATFORM_NAME=ios
     export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
 
@@ -308,6 +337,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     STF_CLI=`echo "${STF_BIN//bin\/stf/lib/node_modules/@devicefarmer/stf/lib/cli}"`
     #echo STF_CLI: $STF_CLI
+
+    export ZMQ_TCP_KEEPALIVE=1
+    export ZMQ_TCP_KEEPALIVE_IDLE=600
 
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
@@ -895,6 +927,34 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     printf '%s' "$content" >$file    # write new content to disk
   }
+
+set_storage_settings() {
+  ## AWS S3 compatible storage
+  local is_confirmed=0
+  #TODO: provide a link to documentation howto create valid S3 bucket
+  echo
+  echo "AWS S3 storage"
+  while [[ $is_confirmed -eq 0 ]]; do
+    read -r -p "Bucket [$ZBR_STORAGE_BUCKET]: " local_bucket
+    if [[ ! -z $local_bucket ]]; then
+      ZBR_STORAGE_BUCKET=$local_bucket
+    fi
+
+    read -r -p "[Optional] Tenant [$ZBR_STORAGE_TENANT]: " local_value
+    if [[ ! -z $local_value ]]; then
+      ZBR_STORAGE_TENANT=$local_value
+    fi
+
+    echo "Bucket: $ZBR_STORAGE_BUCKET"
+    echo "Tenant: $ZBR_STORAGE_TENANT"
+    confirm "" "Continue?" "y"
+    is_confirmed=$?
+  done
+
+  export ZBR_STORAGE_BUCKET=$ZBR_STORAGE_BUCKET
+  export ZBR_STORAGE_TENANT=$ZBR_STORAGE_TENANT
+}
+
 
 if [ ! -d "$HOME/.nvm" ]; then
   echo_warning "NVM must be installed as prerequisites!"
