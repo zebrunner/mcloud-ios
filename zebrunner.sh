@@ -130,16 +130,23 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo 
 
+    echo "MCloud iOS Agent Settings"
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
       read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
       if [[ ! -z $local_hostname ]]; then
         ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
       fi
-      confirm "Current node host address: $ZBR_MCLOUD_NODE_HOSTNAME" "Continue?" "y"
+
+      read -p "Current node name [$ZBR_MCLOUD_NODE_NAME]: " local_name
+      if [[ ! -z $local_name ]]; then
+        ZBR_MCLOUD_NODE_NAME=$local_name
+      fi
+      confirm "Node host address: $ZBR_MCLOUD_NODE_HOSTNAME; Node name: $ZBR_MCLOUD_NODE_NAME" "Continue?" "y"
       is_confirmed=$?
     done
     export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
+    export ZBR_MCLOUD_NODE_NAME=$ZBR_MCLOUD_NODE_NAME
 
     echo 
 
@@ -164,6 +171,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
     replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
     replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
+    replace .env "node_name_value" "$ZBR_MCLOUD_NODE_NAME"
     replace .env "appium_path_value" "$ZBR_MCLOUD_APPIUM_PATH"
 
     if [ "$ZBR_MCLOUD_PROTOCOL" == "https" ]; then
