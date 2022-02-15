@@ -80,10 +80,6 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
   ```
   aws configure
   ```
-* Create local storage folder
-  ```
-  mkdir /opt/appium-storage
-  ```
 * Restart services using `./zebrunner.sh restart`
 
 ## Documentation and free support
