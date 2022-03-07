@@ -46,6 +46,11 @@ export proxy_appium_port=$(echo $proxy_appium_port)
 proxy_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 11`
 export proxy_port=$(echo $proxy_port)
 
+if [ -z $proxy_port ]; then
+  # #105 made 9000 as default proxy port if nothing provided in devices.txt
+  export proxy_port=9000
+fi
+
 export APPIUM_LOG="logs/appium_${name}.log"
 export STF_LOG="logs/stf_${name}.log"
 export WDA_LOG="logs/wda_${name}.log"
