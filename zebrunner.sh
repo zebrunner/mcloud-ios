@@ -72,8 +72,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     which cmake > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as cmake is missed!"
-      exit -1
+      # soft dependency as appium might not be registered in PATH
+      echo_warning "cmake is not detected! It is recommended to install for compatibility!"
     fi
 
     which appium > /dev/null
@@ -962,11 +962,10 @@ if [ ! -d "$HOME/.nvm" ]; then
 fi
 
 #load NVM into the bash path
-
+export NVM_DIR="$HOME/.nvm"
 [ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
 [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && . "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
-export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 

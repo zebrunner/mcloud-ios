@@ -13,7 +13,7 @@ DEVICEVERSION=${os_version}
 DEVICEPLATFORM=MAC
 DEVICEOS=iOS
 DEVICEUDID=${udid}
-
+PROXY_PORT=${proxy_port}
 cat << EndOfMessage
 {
   "capabilities":
@@ -27,6 +27,7 @@ cat << EndOfMessage
           "deviceType": "${DEVICETYPE}",
           "platformName":"${DEVICEOS}",
           "platformVersion":"${DEVICEVERSION}",
+          "proxy_port":"${PROXY_PORT}",
 	  "udid": "${DEVICEUDID}"
         }
       ],

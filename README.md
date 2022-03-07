@@ -59,12 +59,12 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 
 * Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents loading on reboot
 
-### Patch appium to enable video recordings
-* Clone https://github.com/zebrunner/appium.git
-* Patch appium files:
+### Patch appium to enable video recordings (to be automated in v2.1)
+* Clone Zebrunner Appium and patch sources:
   ```
+  git clone https://github.com/zebrunner/appium.git
   cd appium
-  export APPIUM_HOME=/usr/lib/node_modules/appium
+  export APPIUM_HOME=/usr/local/lib/node_modules/appium
   cp -R -v ./files/mcloud/* ${APPIUM_HOME}/node_modules
   ```
 * Generate symlinks to shell scripts:
@@ -79,6 +79,10 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 * Configure aws using your s3 access and secret keys, region etc
   ```
   aws configure
+  ```
+* Create local storage folder
+  ```
+  mkdir /opt/appium-storage
   ```
 * Restart services using `./zebrunner.sh restart`
 
