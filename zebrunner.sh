@@ -426,7 +426,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       scheme=WebDriverAgentRunner_tvOS
     fi
 
-    if [ ! -f "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj" ]; then
+    if [ ! -d "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj" ]; then
       echo_warning "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj is missed!"
       return 0
     fi
