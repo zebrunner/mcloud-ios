@@ -426,6 +426,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       scheme=WebDriverAgentRunner_tvOS
     fi
 
+    if [ ! -f "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj" ]; then
+      echo_warning "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj is missed!"
+      return 0
+    fi
+
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme $scheme -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test > "${WDA_LOG}" 2>&1 &
