@@ -8,12 +8,11 @@ BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 
 
 DEVICENAME=${name}
-DEVICETYPE=${type}
-DEVICEVERSION=${os_version}
+DEVICEVERSION=${PLATFORM_VERSION}
 DEVICEPLATFORM=MAC
 DEVICEOS=iOS
 DEVICEUDID=${udid}
-
+PROXY_PORT=${proxy_port}
 cat << EndOfMessage
 {
   "capabilities":
@@ -27,6 +26,7 @@ cat << EndOfMessage
           "deviceType": "${DEVICETYPE}",
           "platformName":"${DEVICEOS}",
           "platformVersion":"${DEVICEVERSION}",
+          "proxy_port":"${PROXY_PORT}",
 	  "udid": "${DEVICEUDID}"
         }
       ],

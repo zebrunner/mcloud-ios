@@ -25,7 +25,7 @@ if [ ! -d "${BASEDIR}/metaData" ]; then
 fi
 
 # udid position in devices.txt to be able to read by sync scripts
-export udid_position=4
+export udid_position=2
 
 export connectedDevices=${metaDataFolder}/connectedDevices.txt
 export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
@@ -70,6 +70,18 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
+    which ios > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as ios is missed (go-ios)!"
+      exit -1
+    fi
+
+    which jq > /dev/null
+    if [ ! $? -eq 0 ]; then
+      echo_warning "Unable to proceed as jq is missed!"
+      exit -1
+    fi
+
     which cmake > /dev/null
     if [ ! $? -eq 0 ]; then
       # soft dependency as appium might not be registered in PATH
@@ -80,12 +92,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     if [ ! $? -eq 0 ]; then
       # soft dependency as appium might not be registered in PATH
       echo_warning "Appium is not detected! Interrupt setup if you don't have it installed!"
-    fi
-
-    which ios > /dev/null
-    if [ ! $? -eq 0 ]; then
-      # soft dependency as go-ios required after service start
-      echo_warning "go-ios utility is missed! Some operations might be broken!"
     fi
 
     echo
@@ -292,6 +298,14 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
+    echo "populating device info"
+    export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
+    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
+    export DEVICETYPE='Phone'
+    if [ "$deviceClass" = "iPad" ]; then
+      export DEVICETYPE='Tablet'
+    fi
+
     echo "Starting appium: ${udid} - device name : ${name}"
 
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
@@ -307,9 +321,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export APPIUM_APP_WAITING_TIMEOUT=600
 
     nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
+      --session-override \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
-     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$os_version'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
+     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$PLATFORM_VERSION'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
       --nodeconfig ./metaData/$udid.json >> "${APPIUM_LOG}" 2>&1 &
   }
 
@@ -341,9 +356,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZMQ_TCP_KEEPALIVE=1
     export ZMQ_TCP_KEEPALIVE_IDLE=600
 
+    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
+    export DEVICETYPE='Phone'
+    if [ "$deviceClass" = "iPad" ]; then
+      export DEVICETYPE='Tablet'
+    fi
+
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
-      --device-type ${type} \
+      --device-type ${DEVICETYPE} \
       --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
       --screen-port ${stf_screen_port} --connect-port ${MJPEG_PORT} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
@@ -403,6 +424,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     scheme=WebDriverAgentRunner
     if [ "$type" == "tvos" ]; then
       scheme=WebDriverAgentRunner_tvOS
+    fi
+
+    if [ ! -d "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj" ]; then
+      echo_warning "${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj is missed!"
+      return 0
     fi
 
     nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \

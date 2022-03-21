@@ -25,6 +25,8 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
   `brew install ffmpeg`
 * Install zeromq
   `brew install zeromq`
+* Install jq
+  `brew install jq`
 * Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
 * Download go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/latest/download/go-ios-mac.zip) and put into `/usr/local/bin`
 
