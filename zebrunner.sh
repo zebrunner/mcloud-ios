@@ -306,6 +306,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     if [ "$deviceClass" = "iPad" ]; then
       export DEVICETYPE='Tablet'
     fi
+    if [ "$deviceClass" = "AppleTV" ]; then
+      export DEVICETYPE='tvos'
+    fi
+
 
     echo "Starting appium: ${udid} - device name : ${name}"
 
