@@ -39,9 +39,9 @@ cd mcloud-ios
 
 * Update devices.txt registering all whitelisted devices and simulators
 ```
-# DEVICE NAME    | TYPE      | VERSION| UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | PROXY_APPIUM
-iPhone_7         | phone     | 12.3.1 | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701      |  7702
-Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711      |  7712
+# DEVICE NAME    | UDID                                     |APPIUM|  WDA  | MJPEG | IWDP  | STF_SCREEN | PROXY_APPIUM
+iPhone_7         | 48ert45492kjdfhgj896fea31c175f7ab97cbc19 | 4841 | 20001 | 20002 | 20003 |  7701      |  7702
+Phone_X1         | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 20022 | 20023 |  7711      |  7712
 ```
 
   > Specify unique port numbers per each service. Those ports should be accessible from MCloud master host
@@ -81,10 +81,6 @@ Phone_X1         | phone     | 12.3.1 | 7643aa9bd1638255f48ca6beac4285cae4f6454g
 * Configure aws using your s3 access and secret keys, region etc
   ```
   aws configure
-  ```
-* Create local storage folder
-  ```
-  mkdir /opt/appium-storage
   ```
 * Restart services using `./zebrunner.sh restart`
 

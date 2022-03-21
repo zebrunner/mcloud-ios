@@ -300,6 +300,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
 
     echo "populating device info"
+    export PLATFORM_NAME=ios
     export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
     deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
     export DEVICETYPE='Phone'
@@ -307,7 +308,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       export DEVICETYPE='Tablet'
     fi
     if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='tvos'
+      export DEVICETYPE='AppleTV'
+      export PLATFORM_NAME=tvos
     fi
 
 
@@ -316,12 +318,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
 
     newWDA=false
-    #TODO: investigate if tablet should be registered separately, what about tvOS
 
     export BUCKET=$ZBR_STORAGE_BUCKET
     export TENANT=$ZBR_STORAGE_TENANT
-    #TODO: test tvOS and maybe parametrize using valid platform name detected by go-ios utility
-    export PLATFORM_NAME=ios
     export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
 
@@ -427,7 +426,17 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
     scheme=WebDriverAgentRunner
-    if [ "$type" == "tvos" ]; then
+    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
+    export DEVICETYPE='Phone'
+    if [ "$deviceClass" = "iPad" ]; then
+      export DEVICETYPE='Tablet'
+    fi
+    if [ "$deviceClass" = "AppleTV" ]; then
+      export DEVICETYPE='AppleTV'
+      export PLATFORM_NAME=tvos
+    fi
+
+    if [ "$DEVICETYPE" == "AppleTV" ]; then
       scheme=WebDriverAgentRunner_tvOS
     fi
 
