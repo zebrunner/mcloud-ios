@@ -49,7 +49,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     # software prerequisites check like appium, xcode etc
     which ios-deploy > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as `ios-deploy` utility is missed!"
+      echo_warning "Unable to proceed as ios-deploy utility is missed!"
       exit -1
     fi
 
@@ -61,32 +61,32 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     which git > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as `git` is missed!"
+      echo_warning "Unable to proceed as git is missed!"
       exit -1
     fi
 
     which ffmpeg > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as `ffmpeg` is missed!"
+      echo_warning "Unable to proceed as ffmpeg is missed!"
       exit -1
     fi
 
     which ios > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as `ios` is missed (go-ios)!"
+      echo_warning "Unable to proceed as ios is missed (go-ios)!"
       exit -1
     fi
 
     which jq > /dev/null
     if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as `jq` is missed!"
+      echo_warning "Unable to proceed as jq is missed!"
       exit -1
     fi
 
     which cmake > /dev/null
     if [ ! $? -eq 0 ]; then
       # soft dependency as appium might not be registered in PATH
-      echo_warning "`cmake` is not detected! It is recommended to install for compatibility!"
+      echo_warning "cmake is not detected! It is recommended to install for compatibility!"
     fi
 
     which appium > /dev/null
