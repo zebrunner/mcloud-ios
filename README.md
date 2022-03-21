@@ -1,4 +1,4 @@
-Zebrunner Device Farm (iOS slave)
+Zebrunner Device Farm (iOS agent)
 ==================
 
 Feel free to support the development with a [**donation**](https://www.paypal.com/donate?hosted_button_id=JLQ4U468TWQPS) for the next improvements.
@@ -30,7 +30,7 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 * Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
 * Download go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/latest/download/go-ios-mac.zip) and put into `/usr/local/bin`
 
-## iOS-slave setup
+## iOS-agent setup
 * Clone mcloud-ios repo
 ```
 git clone --single-branch --branch master https://github.com/zebrunner/mcloud-ios.git
