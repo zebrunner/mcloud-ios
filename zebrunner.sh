@@ -308,8 +308,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       export DEVICETYPE='Tablet'
     fi
     if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='AppleTV'
-      export PLATFORM_NAME=tvos
+      export DEVICETYPE='tvOS'
+      export PLATFORM_NAME=iOS
     fi
 
 
@@ -432,11 +432,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       export DEVICETYPE='Tablet'
     fi
     if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='AppleTV'
-      export PLATFORM_NAME=tvos
+      export DEVICETYPE='tvOS'
+      export PLATFORM_NAME=iOS
     fi
 
-    if [ "$DEVICETYPE" == "AppleTV" ]; then
+    if [ "$DEVICETYPE" == "tvOS" ]; then
       scheme=WebDriverAgentRunner_tvOS
     fi
 
