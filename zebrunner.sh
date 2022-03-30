@@ -407,18 +407,17 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
     #}
 
-    #TODO: reuse jq for better parsing...
-    bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
-    #echo bundleId: $bundleId
+    export bundleId=$(cat ${sessionFile} | jq -r ".value.capabilities.CFBundleIdentifier")
+    echo bundleId: $bundleId
 
-    sessionId=`cat $sessionFile | grep -m 1 "sessionId" | cut -d '"' -f 4`
-    #echo sessionId: $sessionId
+    export sessionId=$(cat ${sessionFile} | jq -r ".sessionId")
+    echo sessionId: $sessionId
 
-    export PLATFORM_VERSION=`cat $sessionFile | grep "sdkVersion" | cut -d '"' -f 4`
-    #echo PLATFORM_VERSION: $PLATFORM_VERSION
+    export PLATFORM_VERSION=$(cat ${sessionFile} | jq -r ".value.capabilities.sdkVersion")
+    echo PLATFORM_VERSION: $PLATFORM_VERSION
 
-#    export device_type=`cat $sessionFile | grep "device" | cut -d '"' -f 4`
-#    echo device_device: $device_type
+    export device_type=$(cat ${sessionFile} | jq -r ".value.capabilities.device")
+    echo device_type: $device_type
 
     if [[ "$bundleId" != "com.apple.springboard" ]]; then
       echo  "Activating springboard app forcibly..."
