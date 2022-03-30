@@ -301,15 +301,15 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo "populating device info"
     export PLATFORM_NAME=ios
-    export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
+#    export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
     deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
     export DEVICETYPE='Phone'
     if [ "$deviceClass" = "iPad" ]; then
       export DEVICETYPE='Tablet'
     fi
     if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='AppleTV'
-      export PLATFORM_NAME=tvos
+      export DEVICETYPE='tvOS'
+      export PLATFORM_NAME=iOS
     fi
 
 
@@ -393,11 +393,32 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     sessionFile=${metaDataFolder}/tmp_${udid}.txt
     curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
 
+    # example of the session startup output
+    #{
+    #  "value" : {
+    #    "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73",
+    #    "capabilities" : {
+    #      "device" : "iphone",
+    #      "browserName" : " ",
+    #      "sdkVersion" : "15.2",
+    #      "CFBundleIdentifier" : "com.apple.springboard"
+    #    }
+    #  },
+    #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
+    #}
+
+    #TODO: reuse jq for better parsing...
     bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
     #echo bundleId: $bundleId
 
     sessionId=`cat $sessionFile | grep -m 1 "sessionId" | cut -d '"' -f 4`
     #echo sessionId: $sessionId
+
+    export PLATFORM_VERSION=`cat $sessionFile | grep "sdkVersion" | cut -d '"' -f 4`
+    #echo PLATFORM_VERSION: $PLATFORM_VERSION
+
+#    export device_type=`cat $sessionFile | grep "device" | cut -d '"' -f 4`
+#    echo device_device: $device_type
 
     if [[ "$bundleId" != "com.apple.springboard" ]]; then
       echo  "Activating springboard app forcibly..."
@@ -432,11 +453,11 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       export DEVICETYPE='Tablet'
     fi
     if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='AppleTV'
-      export PLATFORM_NAME=tvos
+      export DEVICETYPE='tvOS'
+      export PLATFORM_NAME=iOS
     fi
 
-    if [ "$DEVICETYPE" == "AppleTV" ]; then
+    if [ "$DEVICETYPE" == "tvOS" ]; then
       scheme=WebDriverAgentRunner_tvOS
     fi
 
@@ -915,13 +936,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           echo "Appium will be stopped: ${udid} - device name : ${name}"
           stop-appium $udid &
         fi
-      fi
-
-      ########## STF SERVICES ##########
-      if [[ -n "$simulator" ]]; then
-        # https://github.com/zebrunner/stf/issues/168
-        # simulators temporary unavailable in iSTF
-        continue
       fi
 
       device="$physical$simulator"
