@@ -409,13 +409,13 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     #TODO: reuse jq for better parsing...
     bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
-    echo bundleId: $bundleId
+    #echo bundleId: $bundleId
 
     sessionId=`cat $sessionFile | grep -m 1 "sessionId" | cut -d '"' -f 4`
-    echo sessionId: $sessionId
+    #echo sessionId: $sessionId
 
     export PLATFORM_VERSION=`cat $sessionFile | grep "sdkVersion" | cut -d '"' -f 4`
-    echo PLATFORM_VERSION: $PLATFORM_VERSION
+    #echo PLATFORM_VERSION: $PLATFORM_VERSION
 
 #    export device_type=`cat $sessionFile | grep "device" | cut -d '"' -f 4`
 #    echo device_device: $device_type
