@@ -11,4 +11,4 @@ stf
 *.mp4
 *.log
 metaData/connectedDevices.txt
-metaData/connectedSimulators.txt
+metaData/simulators.txt
