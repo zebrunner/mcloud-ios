@@ -571,6 +571,20 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
+    udid=$1
+    if [ ! -z $udid ]; then
+      . ./configs/getDeviceArgs.sh $udid
+      stop $udid
+
+      # clean metadata
+      echo "Removing temp Appium/WebDriverAgent data for $udid"
+      rm -rf ./tmp/AppiumData/$udid
+      rm -rf ./tmp/DerivedData/$udid
+
+      return 0
+    fi
+
+
     stop
 
     # clean metadata
@@ -820,7 +834,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
           stop [udid]         Stop Device Farm iOS agent services and remove logs [all or for exact device by udid]
           restart [udid]      Restart Device Farm iOS agent services [all or for exact device by udid]
-          down                Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data
+          down [udid]         Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data [all or for exact device by udid]
           shutdown            Destroy Device Farm iOS agent completely
           backup              Backup Device Farm iOS agent services
           restore             Restore Device Farm iOS agent services
@@ -1008,7 +1022,7 @@ case "$1" in
         start $2
         ;;
     down)
-        down
+        down $2
         ;;
     shutdown)
         shutdown
