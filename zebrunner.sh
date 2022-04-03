@@ -278,6 +278,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo "Starting MCloud services..."
     # initiate kickstart of the syncZebrunner without any pause. It should execute start-services function asap
     launchctl kickstart gui/$UID/$MCLOUD_SERVICE
+    echo "Use 'tail -f ./logs/agents.log' to control startup process."
   }
 
   start-services() {
