@@ -563,18 +563,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     kill_processes $pids
   }
 
-
-  restart() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
-      echo_telegram
-      exit -1
-    fi
-
-    stop
-    start
-  }
-
   down() {
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
@@ -830,7 +818,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           unload              Unload LaunchAgents Zebrunner syncup services
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
           stop [udid]         Stop Device Farm iOS agent services and remove logs [all or for exact device by udid]
-          restart             Restart Device Farm iOS agent services
+          restart [udid]      Restart Device Farm iOS agent services [all or for exact device by udid]
           down                Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data
           shutdown            Destroy Device Farm iOS agent completely
           backup              Backup Device Farm iOS agent services
@@ -1015,7 +1003,8 @@ case "$1" in
         stop $2
         ;;
     restart)
-        restart
+        stop $2
+        start $2
         ;;
     down)
         down
