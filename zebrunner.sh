@@ -29,7 +29,8 @@ fi
 export udid_position=2
 
 export connectedDevices=${metaDataFolder}/connectedDevices.txt
-export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
+
+export SIMULATORS=${metaDataFolder}/simulators.txt
 
   print_banner() {
   echo "
@@ -299,20 +300,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       exit -1
     fi
 
-    echo "populating device info"
-    export PLATFORM_NAME=ios
-#    export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-    if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='tvOS'
-      export PLATFORM_NAME=iOS
-    fi
-
-
     echo "Starting appium: ${udid} - device name : ${name}"
 
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
@@ -360,12 +347,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZMQ_TCP_KEEPALIVE=1
     export ZMQ_TCP_KEEPALIVE_IDLE=600
 
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
       --device-type ${DEVICETYPE} \
@@ -407,22 +388,25 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
     #}
 
-    #TODO: reuse jq for better parsing...
-    bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
-    #echo bundleId: $bundleId
+    #cat ${sessionFile}
 
-    sessionId=`cat $sessionFile | grep -m 1 "sessionId" | cut -d '"' -f 4`
-    #echo sessionId: $sessionId
+    export bundleId=$(cat ${sessionFile} | jq -r ".value.capabilities.CFBundleIdentifier")
+    echo bundleId: $bundleId
 
-    export PLATFORM_VERSION=`cat $sessionFile | grep "sdkVersion" | cut -d '"' -f 4`
-    #echo PLATFORM_VERSION: $PLATFORM_VERSION
+    export sessionId=$(cat ${sessionFile} | jq -r ".sessionId")
+    echo sessionId: $sessionId
 
-#    export device_type=`cat $sessionFile | grep "device" | cut -d '"' -f 4`
-#    echo device_device: $device_type
+    export PLATFORM_VERSION=$(cat ${sessionFile} | jq -r ".value.capabilities.sdkVersion")
+    echo PLATFORM_VERSION: $PLATFORM_VERSION
 
-    if [[ "$bundleId" != "com.apple.springboard" ]]; then
-      echo  "Activating springboard app forcibly..."
-      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "com.apple.springboard"}'
+    expectedAppId=com.apple.springboard
+    if [[ "$DEVICETYPE" == "tvOS" ]]; then
+      expectedAppId=com.apple.PineBoard
+    fi
+
+    if [[ "$bundleId" != "$expectedAppId" ]]; then
+      echo  "Activating $expectedAppId app forcibly..."
+      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "${expectedAppId}"}'
       sleep 1
       curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}'
     fi
@@ -447,15 +431,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
     scheme=WebDriverAgentRunner
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-    if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='tvOS'
-      export PLATFORM_NAME=iOS
-    fi
 
     if [ "$DEVICETYPE" == "tvOS" ]; then
       scheme=WebDriverAgentRunner_tvOS
@@ -665,7 +640,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cp backup/settings.env backup/settings.env.bak
     cp devices.txt backup/devices.txt
     cp $HOME/Library/LaunchAgents/syncZebrunner.plist backup/syncZebrunner.plist
-    cp metaData/connectedSimulators.txt backup/connectedSimulators.txt
+    cp ${SIMULATORS} ${SIMULATORS}.bak
 
     cp -R stf stf.bak
 
@@ -694,7 +669,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     echo "Starting Devices Farm iOS agent restore..."
     cp backup/devices.txt devices.txt
     cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
-    cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
+    cp ${SIMULATORS}.bak ${SIMULATORS}
 
     rm -rf stf
     cp -R stf.bak stf
@@ -873,9 +848,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
   syncSimulators() {
     echo `date +"%T"` Sync Simulators script started
-    simulatorsFile=${metaDataFolder}/connectedSimulators.txt
-    # xcrun xctrace list devices - this command can not be used because it returns physical devices as well
-    xcrun simctl list | grep -v "Unavailable" | grep -v "unavailable" > ${simulatorsFile}
+    xcrun simctl list --json > ${SIMULATORS}
+    echo `date +"%T"` Sync Simulators script finished
   }
 
   syncServices() {
@@ -893,12 +867,10 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
       ########## WDA SERVICES ##########
-      # unale to reuse WDA_HOST/WDA_PORT and status call as service might not be started
+      # unable to reuse WDA_HOST/WDA_PORT and status call as service might not be started
+      # how about verify start-wda shell script as well?
       wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
 
-      physical=`cat ${connectedDevices} | grep $udid`
-      simulator=`cat ${connectedSimulators} | grep $udid`
-      device="$physical$simulator"
       #echo device: $device
       #echo wda: $wda
 
