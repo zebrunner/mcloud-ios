@@ -265,6 +265,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     udid=$1
     if [ ! -z $udid ]; then
+      # unblock this particular device from automatic startup
+      rm -rf ./tmp/frozen-$udid
+
       . ./configs/getDeviceArgs.sh $udid
       echo "Starting MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
       start-wda $udid
@@ -273,6 +276,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       return 0
     fi
 
+    # unblock all devices for automatic startup
+    rm -rf ./tmp/frozen*
 
     load
     echo "Starting MCloud services..."
@@ -366,6 +371,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   start-session() {
     # start WDA session correctly generating obligatory snapshot for default 'com.apple.springboard' application.
     udid=$1
+
+    if [[ ! -f ${WDA_ENV} ]]; then
+      echo "Unable to start 1st session as WDA is not started yet!"
+      return 0
+    fi
+
     echo "Starting 1st WDA session for $DEVICE_NAME udid: $DEVICE_UDID..."
     . ./configs/getDeviceArgs.sh $udid
 
@@ -389,7 +400,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
     #}
 
-    #cat ${sessionFile}
+    cat ${sessionFile}
 
     export bundleId=$(cat ${sessionFile} | jq -r ".value.capabilities.CFBundleIdentifier")
     echo bundleId: $bundleId
@@ -431,6 +442,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
+    echo "Use 'tail -f ./logs/wda_${name}.log' to see WDA startup logs"
     scheme=WebDriverAgentRunner
 
     if [ "$DEVICETYPE" == "tvOS" ]; then
@@ -446,7 +458,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme $scheme -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test > "${WDA_LOG}" 2>&1 &
 
-    verifyWDAStartup "${WDA_LOG}" 180 >> "${WDA_LOG}"
+    verifyWDAStartup "${WDA_LOG}" 300 >> "${WDA_LOG}"
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
@@ -460,8 +472,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
       echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
     else
-      # WDA is not started successfully!
+      echo "WDA is not started successfully!"
       rm -fv "${WDA_ENV}"
+      stop-wda $udid
     fi
   }
 
@@ -479,6 +492,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       stop-stf $udid
       stop-appium $udid
       stop-wda $udid
+
+      mkdir ./tmp/frozen-$udid
 
       return 0
     fi
@@ -580,6 +595,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo "Removing temp Appium/WebDriverAgent data for $udid"
       rm -rf ./tmp/AppiumData/$udid
       rm -rf ./tmp/DerivedData/$udid
+
+      mkdir ./tmp/frozen-$udid
 
       return 0
     fi
@@ -864,9 +881,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       udid=`echo $line | cut -d '|' -f ${udid_position}`
       #to trim spaces around. Do not remove!
       udid=$(echo $udid)
-      if [ "$udid" = "UDID" ]; then
+      if [[ "$udid" = "UDID" ]]; then
         continue
       fi
+      if [[ -d ./tmp/frozen-$udid ]]; then
+        continue
+      fi
+
       . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
       ########## WDA SERVICES ##########
