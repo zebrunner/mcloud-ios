@@ -24,7 +24,7 @@ if [ ! -d "${BASEDIR}/logs/backup" ]; then
 fi
 
 if [ ! -d "${BASEDIR}/metaData" ]; then
-    mkdir "${BASEDIR}/metaData"
+    mkdir -p "${BASEDIR}/metaData"
 fi
 
 # udid position in devices.txt to be able to read by sync scripts
@@ -497,7 +497,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       stop-appium $udid
       stop-wda $udid
 
-      mkdir ./tmp/frozen-$udid
+      mkdir -p ./tmp/frozen-$udid
 
       return 0
     fi
@@ -600,7 +600,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       rm -rf ./tmp/AppiumData/$udid
       rm -rf ./tmp/DerivedData/$udid
 
-      mkdir ./tmp/frozen-$udid
+      mkdir -p ./tmp/frozen-$udid
 
       return 0
     fi
