@@ -1,5 +1,7 @@
 #!/bin/bash
 
+export NODE_TLS_REJECT_UNAUTHORIZED=0
+
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
@@ -22,14 +24,15 @@ if [ ! -d "${BASEDIR}/logs/backup" ]; then
 fi
 
 if [ ! -d "${BASEDIR}/metaData" ]; then
-    mkdir "${BASEDIR}/metaData"
+    mkdir -p "${BASEDIR}/metaData"
 fi
 
 # udid position in devices.txt to be able to read by sync scripts
 export udid_position=2
 
 export connectedDevices=${metaDataFolder}/connectedDevices.txt
-export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
+
+export SIMULATORS=${metaDataFolder}/simulators.txt
 
   print_banner() {
   echo "
@@ -189,7 +192,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     echo
     echo "Pull STF updates:"
     if [ ! -d stf ]; then
-      git clone -b 2.0 --single-branch https://github.com/zebrunner/stf.git
+      git clone -b 2.1 --single-branch https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
@@ -264,6 +267,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
     udid=$1
     if [ ! -z $udid ]; then
+      # unblock this particular device from automatic startup
+      rm -rf ./tmp/frozen-$udid
+
       . ./configs/getDeviceArgs.sh $udid
       echo "Starting MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
       start-wda $udid
@@ -272,11 +278,14 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       return 0
     fi
 
+    # unblock all devices for automatic startup
+    rm -rf ./tmp/frozen*
 
     load
     echo "Starting MCloud services..."
     # initiate kickstart of the syncZebrunner without any pause. It should execute start-services function asap
     launchctl kickstart gui/$UID/$MCLOUD_SERVICE
+    echo "Use 'tail -f ./logs/agents.log' to control startup process."
   }
 
   start-services() {
@@ -298,20 +307,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       echo_warning "Unable to start Appium for '${name}' as Device IP not detected!"
       exit -1
     fi
-
-    echo "populating device info"
-    export PLATFORM_NAME=ios
-    export PLATFORM_VERSION=$(ios info --udid=$udid | jq -r ".ProductVersion")
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-    if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='tvOS'
-      export PLATFORM_NAME=iOS
-    fi
-
 
     echo "Starting appium: ${udid} - device name : ${name}"
 
@@ -360,12 +355,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     export ZMQ_TCP_KEEPALIVE=1
     export ZMQ_TCP_KEEPALIVE_IDLE=600
 
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-
     nohup node $STF_CLI ios-device --serial ${udid} \
       --device-name ${name} \
       --device-type ${DEVICETYPE} \
@@ -384,6 +373,12 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
   start-session() {
     # start WDA session correctly generating obligatory snapshot for default 'com.apple.springboard' application.
     udid=$1
+
+    if [[ ! -f ${WDA_ENV} ]]; then
+      echo "Unable to start 1st session as WDA is not started yet!"
+      return 0
+    fi
+
     echo "Starting 1st WDA session for $DEVICE_NAME udid: $DEVICE_UDID..."
     . ./configs/getDeviceArgs.sh $udid
 
@@ -393,15 +388,39 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     sessionFile=${metaDataFolder}/tmp_${udid}.txt
     curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
 
-    bundleId=`cat $sessionFile | grep "CFBundleIdentifier" | cut -d '"' -f 4`
-    #echo bundleId: $bundleId
+    # example of the session startup output
+    #{
+    #  "value" : {
+    #    "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73",
+    #    "capabilities" : {
+    #      "device" : "iphone",
+    #      "browserName" : " ",
+    #      "sdkVersion" : "15.2",
+    #      "CFBundleIdentifier" : "com.apple.springboard"
+    #    }
+    #  },
+    #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
+    #}
 
-    sessionId=`cat $sessionFile | grep -m 1 "sessionId" | cut -d '"' -f 4`
-    #echo sessionId: $sessionId
+    cat ${sessionFile}
 
-    if [[ "$bundleId" != "com.apple.springboard" ]]; then
-      echo  "Activating springboard app forcibly..."
-      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "com.apple.springboard"}'
+    export bundleId=$(cat ${sessionFile} | jq -r ".value.capabilities.CFBundleIdentifier")
+    echo bundleId: $bundleId
+
+    export sessionId=$(cat ${sessionFile} | jq -r ".sessionId")
+    echo sessionId: $sessionId
+
+    export PLATFORM_VERSION=$(cat ${sessionFile} | jq -r ".value.capabilities.sdkVersion")
+    echo PLATFORM_VERSION: $PLATFORM_VERSION
+
+    expectedAppId=com.apple.springboard
+    if [[ "$DEVICETYPE" == "tvOS" ]]; then
+      expectedAppId=com.apple.PineBoard
+    fi
+
+    if [[ "$bundleId" != "$expectedAppId" ]]; then
+      echo  "Activating $expectedAppId app forcibly..."
+      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "${expectedAppId}"}'
       sleep 1
       curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}'
     fi
@@ -425,16 +444,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     fi
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
+    echo "Use 'tail -f ./logs/wda_${name}.log' to see WDA startup logs"
     scheme=WebDriverAgentRunner
-    deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-    export DEVICETYPE='Phone'
-    if [ "$deviceClass" = "iPad" ]; then
-      export DEVICETYPE='Tablet'
-    fi
-    if [ "$deviceClass" = "AppleTV" ]; then
-      export DEVICETYPE='tvOS'
-      export PLATFORM_NAME=iOS
-    fi
 
     if [ "$DEVICETYPE" == "tvOS" ]; then
       scheme=WebDriverAgentRunner_tvOS
@@ -449,7 +460,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
       -scheme $scheme -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test > "${WDA_LOG}" 2>&1 &
 
-    verifyWDAStartup "${WDA_LOG}" 180 >> "${WDA_LOG}"
+    verifyWDAStartup "${WDA_LOG}" 300 >> "${WDA_LOG}"
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
@@ -463,8 +474,9 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
       echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
     else
-      # WDA is not started successfully!
+      echo "WDA is not started successfully!"
       rm -fv "${WDA_ENV}"
+      stop-wda $udid
     fi
   }
 
@@ -482,6 +494,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       stop-stf $udid
       stop-appium $udid
       stop-wda $udid
+
+      mkdir -p ./tmp/frozen-$udid
 
       return 0
     fi
@@ -567,24 +581,28 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     kill_processes $pids
   }
 
-
-  restart() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
-      echo_telegram
-      exit -1
-    fi
-
-    stop
-    start
-  }
-
   down() {
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
     fi
+
+    udid=$1
+    if [ ! -z $udid ]; then
+      . ./configs/getDeviceArgs.sh $udid
+      stop $udid
+
+      # clean metadata
+      echo "Removing temp Appium/WebDriverAgent data for $udid"
+      rm -rf ./tmp/AppiumData/$udid
+      rm -rf ./tmp/DerivedData/$udid
+
+      mkdir -p ./tmp/frozen-$udid
+
+      return 0
+    fi
+
 
     stop
 
@@ -644,7 +662,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     cp backup/settings.env backup/settings.env.bak
     cp devices.txt backup/devices.txt
     cp $HOME/Library/LaunchAgents/syncZebrunner.plist backup/syncZebrunner.plist
-    cp metaData/connectedSimulators.txt backup/connectedSimulators.txt
+    cp ${SIMULATORS} ${SIMULATORS}.bak
 
     cp -R stf stf.bak
 
@@ -673,7 +691,7 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
     echo "Starting Devices Farm iOS agent restore..."
     cp backup/devices.txt devices.txt
     cp backup/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner.plist
-    cp backup/connectedSimulators.txt metaData/connectedSimulators.txt
+    cp ${SIMULATORS}.bak ${SIMULATORS}
 
     rm -rf stf
     cp -R stf.bak stf
@@ -834,8 +852,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           unload              Unload LaunchAgents Zebrunner syncup services
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
           stop [udid]         Stop Device Farm iOS agent services and remove logs [all or for exact device by udid]
-          restart             Restart Device Farm iOS agent services
-          down                Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data
+          restart [udid]      Restart Device Farm iOS agent services [all or for exact device by udid]
+          down [udid]         Stop Device Farm iOS agent services, remove logs and Appium/WDA temp data [all or for exact device by udid]
           shutdown            Destroy Device Farm iOS agent completely
           backup              Backup Device Farm iOS agent services
           restore             Restore Device Farm iOS agent services
@@ -852,9 +870,8 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
 
   syncSimulators() {
     echo `date +"%T"` Sync Simulators script started
-    simulatorsFile=${metaDataFolder}/connectedSimulators.txt
-    # xcrun xctrace list devices - this command can not be used because it returns physical devices as well
-    xcrun simctl list | grep -v "Unavailable" | grep -v "unavailable" > ${simulatorsFile}
+    xcrun simctl list --json > ${SIMULATORS}
+    echo `date +"%T"` Sync Simulators script finished
   }
 
   syncServices() {
@@ -866,18 +883,20 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
       udid=`echo $line | cut -d '|' -f ${udid_position}`
       #to trim spaces around. Do not remove!
       udid=$(echo $udid)
-      if [ "$udid" = "UDID" ]; then
+      if [[ "$udid" = "UDID" ]]; then
         continue
       fi
+      if [[ -d ./tmp/frozen-$udid ]]; then
+        continue
+      fi
+
       . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
       ########## WDA SERVICES ##########
-      # unale to reuse WDA_HOST/WDA_PORT and status call as service might not be started
+      # unable to reuse WDA_HOST/WDA_PORT and status call as service might not be started
+      # how about verify start-wda shell script as well?
       wda=`ps -ef | grep xcodebuild | grep $udid | grep WebDriverAgent`
 
-      physical=`cat ${connectedDevices} | grep $udid`
-      simulator=`cat ${connectedSimulators} | grep $udid`
-      device="$physical$simulator"
       #echo device: $device
       #echo wda: $wda
 
@@ -915,13 +934,6 @@ export connectedSimulators=${metaDataFolder}/connectedSimulators.txt
           echo "Appium will be stopped: ${udid} - device name : ${name}"
           stop-appium $udid &
         fi
-      fi
-
-      ########## STF SERVICES ##########
-      if [[ -n "$simulator" ]]; then
-        # https://github.com/zebrunner/stf/issues/168
-        # simulators temporary unavailable in iSTF
-        continue
       fi
 
       device="$physical$simulator"
@@ -1029,10 +1041,11 @@ case "$1" in
         stop $2
         ;;
     restart)
-        restart
+        stop $2
+        start $2
         ;;
     down)
-        down
+        down $2
         ;;
     shutdown)
         shutdown
