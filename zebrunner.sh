@@ -6,7 +6,7 @@ BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
 MCLOUD_SERVICE=com.zebrunner.mcloud
-CHECK_APP_SIZE_OPTIONALLY=true
+export CHECK_APP_SIZE_OPTIONALLY=true
 
 if [ -f backup/settings.env ]; then
   source backup/settings.env

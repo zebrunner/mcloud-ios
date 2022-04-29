@@ -61,7 +61,7 @@ Phone_X1         | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 200
 
 * Setup user [auto-login](https://support.apple.com/en-us/HT201476) for your current user to enable LaunchAgents loading on reboot
 
-### Patch appium to enable video recordings (to be automated in v2.1)
+### Patch appium to enable video recordings
 * Clone Zebrunner Appium and patch sources:
   ```
   git clone https://github.com/zebrunner/appium.git
