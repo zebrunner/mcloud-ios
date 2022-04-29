@@ -192,7 +192,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo
     echo "Pull STF updates:"
     if [ ! -d stf ]; then
-      git clone -b 2.1 --single-branch https://github.com/zebrunner/stf.git
+      git clone -b 2.1.1 --single-branch https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
