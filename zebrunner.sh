@@ -1,7 +1,5 @@
 #!/bin/bash
 
-export NODE_TLS_REJECT_UNAUTHORIZED=0
-
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
@@ -192,7 +190,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo
     echo "Pull STF updates:"
     if [ ! -d stf ]; then
-      git clone -b 2.1.1 --single-branch https://github.com/zebrunner/stf.git
+      git clone -b 2.2 --single-branch https://github.com/zebrunner/stf.git
       cd stf
     else
       cd stf
@@ -203,7 +201,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     confirm "Rebuild STF sources?" "Confirm?" "y"
     if [[ $? -eq 1 ]]; then
       echo "Building iSTF component..."
-      nvm use v8
+      nvm use v17.1.0
       npm install
       npm link --force
     fi
@@ -343,8 +341,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
 
-    # Specify pretty old node v8.17.0 as current due to the STF dependency
-    nvm use v8.17.0
+    # Specify concrete supported v17.1.0 node for STF
+    nvm use v17.1.0
 
     STF_BIN=`which stf`
     #echo STF_BIN: $STF_BIN

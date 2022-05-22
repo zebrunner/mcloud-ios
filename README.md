@@ -11,10 +11,9 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 * Install XCode 11.2+
 * Install [nvm](https://github.com/nvm-sh/nvm) version manager
   > NVM required to organize automatic switch between nodes
-* Using NVM install v8.17.0 and the latest Appium compatible node version
-  > 8.x node is still required by OpenSTF!
-* Make the latest node as default one, for example:
-  `nvm alias default 14`
+* Using NVM install v17.1.0 for STF and the latest Appium compatible node version
+* Make the Appium node as default one, for example:
+  `nvm alias default 17`
 * Install Appium, optionally install opencv module to be able to support [find by image](https://zebrunner.github.io/carina/automation/mobile/#how-to-use-find-by-image-strategy) strategy
 * Sign WebDriverAgent using your Dev Apple certificate and install WebDriverAgent on each device manually
   * Open in XCode <i>APPIUM_HOME</i>/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
