@@ -462,11 +462,15 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [[ $? = 0 ]]; then
       # WDA was started successfully!
       # parse ip address from log file line:
+      # WebDriverAgent v4.1.4
+      #{"level":"info","msg":"2021-12-08 19:26:18.502735+0300 WebDriverAgentRunner-Runner[8680:8374823] ServerURLHere-\u003ehttp://192.168.88.155:8100\u003c-ServerURLHere\n","time":"2021-12-08T16:26:18Z"}
       # 2020-07-13 17:15:15.295128+0300 WebDriverAgentRunner-Runner[5660:22940482] ServerURLHere->http://192.168.88.127:20001<-ServerURLHere
 
-      WDA_HOST=`grep "ServerURLHere->" "${WDA_LOG}" | cut -d ':' -f 5`
-      # remove forward slashes
-      WDA_HOST="${WDA_HOST//\//}"
+      # WebDriverAgent 4.10.12
+      # {"fields.msg":"2022-12-13 16:56:20.796411+0300 WebDriverAgentRunner-Runner[27575:4609350] ServerURLHere-\u003ehttp://192.168.89.19:8100\u003c-ServerURLHere\n","fields.time":28890969122592,"level":"info","msg":"outputReceived:fromProcess:atTime:","pid":27575,"time":"2022-12-13T05:56:20-08:00"}
+      ip=`grep -o -P '(?<=ServerURLHere).*(?=ServerURLHere)' ${WDA_LOG_FILE} | cut -d ':' -f 2`
+      # make sure to remove \\ to get clear ip from //192.168.89.19
+      WDA_HOST="${ip//\//}"
       # put IP address into the metadata file
       echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
       echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
