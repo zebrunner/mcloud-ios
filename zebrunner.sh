@@ -459,23 +459,31 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       -scheme $scheme -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test > "${WDA_LOG}" 2>&1 &
 
     verifyWDAStartup "${WDA_LOG}" 300 >> "${WDA_LOG}"
-    if [[ $? = 0 ]]; then
-      # WDA was started successfully!
-      # parse ip address from log file line:
-      # 2020-07-13 17:15:15.295128+0300 WebDriverAgentRunner-Runner[5660:22940482] ServerURLHere->http://192.168.88.127:20001<-ServerURLHere
-
-      WDA_HOST=`grep "ServerURLHere->" "${WDA_LOG}" | cut -d ':' -f 5`
-      # remove forward slashes
-      WDA_HOST="${WDA_HOST//\//}"
-      # put IP address into the metadata file
-      echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
-      echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
-      echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
-    else
+    if [[ ! $? = 0 ]]; then
       echo "WDA is not started successfully!"
       rm -fv "${WDA_ENV}"
       stop-wda $udid
+      return 0
     fi
+
+    # WDA was started successfully!
+    # parse ip address from log file line:
+    # 2020-07-13 17:15:15.295128+0300 WebDriverAgentRunner-Runner[5660:22940482] ServerURLHere->http://192.168.88.127:20001<-ServerURLHere
+
+    WDA_HOST=`grep "ServerURLHere->" "${WDA_LOG}" | cut -d ':' -f 5`
+    # remove forward slashes
+    WDA_HOST="${WDA_HOST//\//}"
+    # put IP address into the metadata file
+
+    #echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
+    if [ -n "$device" ]; then
+      # start proxy forwarding for physical devices
+      ios forward $WDA_PORT $WDA_PORT --udid=$udid &
+    fi
+
+    echo "export WDA_HOST=localhost" > ${WDA_ENV}
+    echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
+    echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
   }
 
   stop() {
