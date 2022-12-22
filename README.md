@@ -66,7 +66,7 @@ Phone_X1         | 7643aa9bd1638255f48ca6beac4285cae4f6454g | 4842 | 20011 | 200
   git clone https://github.com/zebrunner/appium.git
   cd appium
   export APPIUM_HOME=/usr/local/lib/node_modules/appium
-  cp -R -v ./files/mcloud/* ${APPIUM_HOME}/node_modules
+  cp -R -v ./files/mcloud/* ${APPIUM_HOME}/
   ```
 * Generate symlinks to shell scripts:
   ```
