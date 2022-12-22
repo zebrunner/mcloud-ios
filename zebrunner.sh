@@ -16,10 +16,6 @@ fi
 export devices=${BASEDIR}/devices.txt
 export metaDataFolder=${BASEDIR}/metaData
 
-if [ ! -d "${BASEDIR}/logs/backup" ]; then
-    mkdir -p "${BASEDIR}/logs/backup"
-fi
-
 if [ ! -d "${BASEDIR}/metaData" ]; then
     mkdir -p "${BASEDIR}/metaData"
 fi
@@ -256,25 +252,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm -rf ./tmp/frozen*
 
     devicesFile=${metaDataFolder}/connectedDevices.txt
-#    ios listen > ${connectedDevices} &
-#
-    echo "#TODO: implement start by udid using whitelisted devices.txt "
-#    # verify one by one connected devices and authorized simulators
-#    while read -r line
-#    do
-#      udid=`echo $line | cut -d '|' -f ${udid_position}`
-#      #to trim spaces around. Do not remove!
-#      udid=$(echo $udid)
-#      #echo "udid: $udid"
-#      if [[ "$udid" = "UDID" ]]; then
-#        continue
-#      fi
-#      if [[ -d ./tmp/frozen-$udid ]]; then
-#        continue
-#      fi
-#
-#      start-device $udid
-#    done < ${devices}
+    ios listen > ${connectedDevices} &
+
+    # verify one by one connected devices and authorized simulators
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      #echo "udid: $udid"
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+
+      echo "udid: $udid"
+      start-device $udid &
+    done < ${devices}
   }
 
   start-device() {
@@ -284,21 +277,28 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    print_banner
-
     udid=$1
+    echo udid: $udid
     # unblock this particular device from automatic startup
-    rm -rf ./tmp/frozen-$udid
 
     . ./configs/getDeviceArgs.sh $udid
 
-    if [ -n "$physical" ]; then
-      echo "Starting MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
-      start-wda $udid
-      start-appium $udid
-      start-stf $udid
+    echo "device: $device"
+    if [ -n "$device" ]; then
+      echo "Starting services for $DEVICE_UDID. Find details in logs/$DEVICE_NAME.log"
+      start-wda $udid > ${DEVICE_LOG} 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
+        exit -1
+      else
+        echo "seems like wda started!"
+      fi
+      start-appium $udid >> ${DEVICE_LOG} 2>&1
+      start-stf $udid >> ${DEVICE_LOG} 2>&1
+
+      echo nohup ./check-device.sh $udid >> ${DEVICE_LOG} 2>&1 &
     else 
-      echo "No sense to start services for unavailable device: $name;  udid: $udud""
+      echo "No sense to start services for unavailable device: $name;  udid: $udud"
     fi
   }
 
@@ -333,8 +333,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       --session-override \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
-     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "derivedDataPath":"'${BASEDIR}/tmp/DerivedData/${udid}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$PLATFORM_VERSION'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
-      --nodeconfig ./metaData/$udid.json >> "${APPIUM_LOG}" 2>&1 &
+     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$PLATFORM_VERSION'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
+      --nodeconfig ./metaData/$udid.json &
   }
 
   start-stf() {
@@ -375,7 +375,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       --boot-complete-timeout 60000 --mute-master never \
       --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
       --wda-host ${WDA_HOST} --wda-port ${WDA_PORT} \
-      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup >> "${STF_LOG}" 2>&1 &
+      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup &
 
   }
 
@@ -448,7 +448,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
-    echo "Use 'tail -f ./logs/wda_${name}.log' to see WDA startup logs"
     scheme=WebDriverAgentRunner
 
     #if [ "$DEVICETYPE" == "tvOS" ]; then
@@ -468,7 +467,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
       ios runwda --bundleid=$WDA_BUNDLEID --testrunnerbundleid=$WDA_BUNDLEID --xctestconfig=WebDriverAgentRunner.xctest \
-	--env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid > "${WDA_LOG}" 2>&1 &
+	--env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
     else
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
       #for simulators continue to build WDA
@@ -477,15 +476,15 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
       export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
 
-      xcrun simctl launch --console --terminate-running-process ${udid} com.facebook.WebDriverAgentRunner.xctrunner > "${WDA_LOG}" 2>&1 &
+      xcrun simctl launch --console --terminate-running-process ${udid} com.facebook.WebDriverAgentRunner.xctrunner &
     fi
 
-    verifyWDAStartup "${WDA_LOG}" 300 >> "${WDA_LOG}"
+    verifyWDAStartup "${DEVICE_LOG}" ${WDA_WAIT_TIMEOUT}
     if [[ ! $? = 0 ]]; then
       echo "WDA is not started successfully!"
       rm -fv "${WDA_ENV}"
       stop-wda $udid
-      return 0
+      return 1
     fi
 
     if [ -n "$physical" ]; then
@@ -498,9 +497,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
     echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
 
-    #TODO: implement recursive restart after wda crash
-    #nc localhost $WDA_PORT
-    #nohup ./configs/check-wda.sh $udid  &
+    return 0
   }
 
   stop() {
@@ -515,13 +512,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     export pids=`ps -eaf | grep ios | grep 'listen' | grep -v grep | awk '{ print $2 }'`
     kill_processes $pids
 
-    echo "#TODO: implement stop based on devices.txt"
+    # verify one by one connected devices and authorized simulators
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      #echo "udid: $udid"
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
 
-    pkill -f zebrunner.sh
-    # clean logs
-    echo "Removing logs..."
-    rm -fv ./logs/*.log
-    rm -fv ./logs/backup/*.log
+      stop-device $udid &
+    done < ${devices}
+
+    #TODO: do we need pkill?
+    #pkill -f zebrunner.sh
   }
 
   stop-device() {
@@ -533,12 +539,17 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     udid=$1
     . ./configs/getDeviceArgs.sh $udid
-    echo "Stopping MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
-    stop-stf $udid
-    stop-appium $udid
-    stop-wda $udid
 
-    mkdir -p ./tmp/frozen-$udid
+    if [ -n "$device" ]; then
+      echo "Stopping MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
+      stop-appium $udid >> ${DEVICE_LOG} 2>&1
+      stop-wda $udid >> ${DEVICE_LOG} 2>&1
+      # wda should be stopped before stf to mark device disconnected asap
+      stop-stf $udid >> ${DEVICE_LOG} 2>&1
+    else
+      echo "No sense to stop services for unavailable device: $name;  udid: $udud"
+    fi
+
   }
 
 
@@ -849,9 +860,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ "$udid" = "UDID" ]]; then
         continue
       fi
-      if [[ -d ./tmp/frozen-$udid ]]; then
-        continue
-      fi
 
       . ${BASEDIR}/configs/getDeviceArgs.sh $udid
 
@@ -1009,9 +1017,6 @@ case "$1" in
          start-device $2
         fi
         ;;
-    start-wda)
-        start-wda $2
-        ;;
     stop)
         if [ -z $2 ]; then
           stop
@@ -1022,6 +1027,9 @@ case "$1" in
     restart)
         stop $2
         start $2
+        ;;
+    start-stf)
+        start-stf $2
         ;;
     shutdown)
         shutdown
