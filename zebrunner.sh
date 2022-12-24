@@ -246,15 +246,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    echo "Starting MCloud services..."
-
-    # unblock all devices for automatic startup
-    rm -rf ./tmp/frozen*
-
-    devicesFile=${metaDataFolder}/connectedDevices.txt
-    #ios listen > ${connectedDevices} &
     ios list > ${connectedDevices}
-
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -269,10 +261,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       start-device $udid &
     done < ${devices}
 
-    wait
-    echo "MCloud services started."
-    #TODO: launch status and show healtchcheck
+    echo "Waiting while services are up&running..."
+    echo
 
+    wait
+    echo
+
+    status
     #TODO: start in background check-device processes
   }
 
@@ -299,7 +294,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       echo nohup ./check-device.sh $udid >> ${DEVICE_LOG} 2>&1 &
     else 
-      echo "Device: $DEVICE_NAME ($DEVICE_UDID) is not connected!"
+      echo "Device: $DEVICE_NAME ($DEVICE_UDID) is disconnected!"
     fi
   }
 
@@ -655,8 +650,42 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    echo
-    echo "TODO: #78 implement extended status call for iOS devices and simulators"
+
+    ios list > ${connectedDevices}
+    # verify one by one connected devices and authorized simulators
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      #echo "udid: $udid"
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+
+      status-device $udid &
+    done < ${devices}
+
+    wait
+  }
+
+  status-device() {
+    udid=$1
+
+    . ./configs/getDeviceArgs.sh $udid
+
+    if [ -n "$device" ]; then
+      #Hit the Appium status URL to see if it is available
+      if curl -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
+      then
+        echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
+      else
+        echo "$DEVICE_NAME ($DEVICE_UDID) is unhealthy!"
+      fi
+    else
+      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
+    fi
+
   }
 
   backup() {
