@@ -270,7 +270,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo
 
     status
-    #TODO: start in background check-device processes
   }
 
   start-device() {
@@ -294,7 +293,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       start-appium $udid >> ${DEVICE_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
-      echo nohup ./check-device.sh $udid >> ${DEVICE_LOG} 2>&1 &
+      #TODO: register check-device script via LaunchAgents as we can not establish and keep mjpeg socket connection in background:(
+      #check-device $udid >> ${DEVICE_LOG} 2>&1 &
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
     fi
