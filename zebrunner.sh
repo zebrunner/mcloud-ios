@@ -232,6 +232,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
+    echo "MCloud agent services will be started automatically soon for connected devices..."
 
   }
 
