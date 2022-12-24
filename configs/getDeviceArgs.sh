@@ -47,17 +47,14 @@ if [ -z $proxy_port ]; then
   export proxy_port=9000
 fi
 
-export APPIUM_LOG="logs/appium_${name}.log"
-export STF_LOG="logs/stf_${name}.log"
-export WDA_LOG="logs/wda_${name}.log"
+export DEVICE_LOG="logs/${name}.log"
 
 export WDA_ENV="${metaDataFolder}/${name}.env"
 if [ -f "${WDA_ENV}" ]; then
   . ${WDA_ENV}
 fi
 
-
-export physical=`cat ${connectedDevices} | grep $udid`
+export physical=`cat ${connectedDevices} | grep $udid | grep 'Attached'`
 #echo physical: $physical
 
 export DEVICETYPE='Phone'
