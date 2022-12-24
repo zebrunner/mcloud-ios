@@ -211,6 +211,28 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # export all ZBR* variables to save user input
     export_settings
 
+    #Configure LaunchAgent service per each device for fast recovery
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      #echo "udid: $udid"
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+
+      cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
+      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
+      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
+      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
+
+      #unload explicitly in advance in case it is secondary etc setup
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    done < ${devices}
+
+
   }
 
   shutdown() {
@@ -229,6 +251,23 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     print_banner
 
     down
+
+    # Unload ad remove customized LaunchAgents
+    while read -r line
+    do
+      udid=`echo $line | cut -d '|' -f ${udid_position}`
+      #to trim spaces around. Do not remove!
+      udid=$(echo $udid)
+      #echo "udid: $udid"
+      if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+
+      #unload explicitly in advance in case it is secondary etc setup
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      rm -f $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
+    done < ${devices}
+
 
     # remove configuration files and LaunchAgents plist(s)
     git checkout -- devices.txt
@@ -293,8 +332,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       start-appium $udid >> ${DEVICE_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
-      #TODO: register check-device script via LaunchAgents as we can not establish and keep mjpeg socket connection in background:(
-      #check-device $udid >> ${DEVICE_LOG} 2>&1 &
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
     fi
@@ -509,12 +546,28 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
     echo "Keeping WDA MJPEG connection until it is alive..."
     echo "Press Ctrl-C to stop listening"
+
     nc localhost ${MJPEG_PORT}
     echo "Connection to WDA $MJPEG_PORT is closed."
 
     # as only connection corrupted restart wda and stf services
     echo "Restarting WDA and STF service for $name..."
     start-wda $udid >> ${DEVICE_LOG} 2>&1 &
+    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+  }
+
+  recover() {
+    udid=$1
+    if [ "$udid" == "" ]; then
+      echo_warning "Unable to check WDA without device udid!"
+      return 0
+    fi
+    #echo udid: $udid
+
+    . ./configs/getDeviceArgs.sh $udid
+    echo "Recovering services for $DEVICE_NAME ($DEVICE_UDID)"
+    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
+    start-appium $udid >> ${DEVICE_LOG} 2>&1 &
     start-stf $udid >> ${DEVICE_LOG} 2>&1 &
   }
 
@@ -547,8 +600,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     wait
     echo "MCloud services stopped."
 
-    #TODO: do we need pkill?
-    #pkill -f zebrunner.sh
   }
 
   stop-device() {
@@ -981,11 +1032,19 @@ case "$1" in
         fi
         ;;
     restart)
-        stop $2
-        start $2
+        if [ -z $2 ]; then
+          stop
+          start
+        else
+         stop-device $2
+         start-device
+        fi
         ;;
     check-device)
         check-device $2
+        ;;
+    recover)
+        recover $2
         ;;
     start-stf)
         start-stf $2

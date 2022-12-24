@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+	"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>EnvironmentVariables</key>
+		<dict>
+			<key>PATH</key>
+			<string>/bin:/usr/bin:/usr/local/bin:/usr/sbin:/sbin</string>
+		</dict>
+		<key>Label</key>
+		<string>com.zebrunner.mcloud.udid_value</string>
+		<key>ProgramArguments</key>
+		<array>
+                	<string>./zebrunner.sh</string>
+		        <string>recover</string>
+                        <string>udid_value</string>
+        	</array>
+		<key>WorkingDirectory</key>
+		<string>working_dir_value</string>
+		<key>UserName</key>
+		<string>user_value</string>
+		<key>KeepAlive</key>
+		<dict>
+			<key>SuccessfulExit</key>
+			<false/>
+		</dict>
+
+		<key>RunAtLoad</key>
+		<false/>
+
+		<key>AbandonProcessGroup</key>
+		<true/>
+
+		<key>StartInterval</key>
+ 		<integer>0</integer>
+
+		<key>StandardErrorPath</key>
+		<string>logs/agents.log</string>
+		<key>StandardOutPath</key>
+		<string>logs/agents.log</string>
+	</dict>
+</plist>
