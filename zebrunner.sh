@@ -184,12 +184,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo
     echo "Pull STF updates:"
+    stf_branch=2.4
     if [ ! -d stf ]; then
-      git clone -b develop --single-branch https://github.com/zebrunner/stf.git
+      git clone https://github.com/zebrunner/stf.git
       cd stf
+      git -c advice.detachedHead=false checkout ${stf_branch}
     else
       cd stf
-      git pull
+      git pull origin ${stf_branch}
     fi
 
     echo
