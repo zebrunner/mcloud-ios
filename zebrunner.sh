@@ -246,13 +246,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    print_banner
+    echo "Starting MCloud services..."
 
     # unblock all devices for automatic startup
     rm -rf ./tmp/frozen*
 
     devicesFile=${metaDataFolder}/connectedDevices.txt
-    ios listen > ${connectedDevices} &
+    #ios listen > ${connectedDevices} &
+    ios list > ${connectedDevices}
 
     # verify one by one connected devices and authorized simulators
     while read -r line
@@ -265,9 +266,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      echo "udid: $udid"
       start-device $udid &
     done < ${devices}
+
+    wait
+    echo "MCloud services started."
+    #TODO: launch status and show healtchcheck
+
+    #TODO: start in background check-device processes
   }
 
   start-device() {
@@ -278,27 +284,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     udid=$1
-    echo udid: $udid
-    # unblock this particular device from automatic startup
 
     . ./configs/getDeviceArgs.sh $udid
 
-    echo "device: $device"
     if [ -n "$device" ]; then
-      echo "Starting services for $DEVICE_UDID. Find details in logs/$DEVICE_NAME.log"
+      echo "Device: $DEVICE_NAME ($DEVICE_UDID)"
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
         exit -1
-      else
-        echo "seems like wda started!"
       fi
       start-appium $udid >> ${DEVICE_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
       echo nohup ./check-device.sh $udid >> ${DEVICE_LOG} 2>&1 &
     else 
-      echo "No sense to start services for unavailable device: $name;  udid: $udud"
+      echo "Device: $DEVICE_NAME ($DEVICE_UDID) is not connected!"
     fi
   }
 
@@ -500,6 +501,26 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     return 0
   }
 
+  check-device() {
+    udid=$1
+    if [ "$udid" == "" ]; then
+      echo_warning "Unable to check WDA without device udid!"
+      return 0
+    fi
+    #echo udid: $udid
+
+    . ./configs/getDeviceArgs.sh $udid
+    echo "Keeping WDA MJPEG connection until it is alive..."
+    echo "Press Ctrl-C to stop listening"
+    nc localhost ${MJPEG_PORT}
+    echo "Connection to WDA $MJPEG_PORT is closed."
+
+    # as only connection corrupted restart wda and stf services
+    echo "Restarting WDA and STF service for $name..."
+    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
+    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+  }
+
   stop() {
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
@@ -509,8 +530,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo "Stopping MCloud services..."
 
-    export pids=`ps -eaf | grep ios | grep 'listen' | grep -v grep | awk '{ print $2 }'`
-    kill_processes $pids
+    #export pids=`ps -eaf | grep ios | grep 'listen' | grep -v grep | awk '{ print $2 }'`
+    #kill_processes $pids
 
     # verify one by one connected devices and authorized simulators
     while read -r line
@@ -525,6 +546,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       stop-device $udid &
     done < ${devices}
+
+    wait
+    echo "MCloud services stopped."
 
     #TODO: do we need pkill?
     #pkill -f zebrunner.sh
@@ -541,7 +565,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
-      echo "Stopping MCloud services for $DEVICE_NAME udid: $DEVICE_UDID..."
+      echo "Device: $DEVICE_NAME ($DEVICE_UDID)"
       stop-appium $udid >> ${DEVICE_LOG} 2>&1
       stop-wda $udid >> ${DEVICE_LOG} 2>&1
       # wda should be stopped before stf to mark device disconnected asap
@@ -1027,6 +1051,9 @@ case "$1" in
     restart)
         stop $2
         start $2
+        ;;
+    check-device)
+        check-device $2
         ;;
     start-stf)
         start-stf $2
