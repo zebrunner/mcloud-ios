@@ -283,7 +283,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
-      echo "Device: $DEVICE_NAME ($DEVICE_UDID)"
+      echo "$DEVICE_NAME ($DEVICE_UDID)"
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
@@ -294,7 +294,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       echo nohup ./check-device.sh $udid >> ${DEVICE_LOG} 2>&1 &
     else 
-      echo "Device: $DEVICE_NAME ($DEVICE_UDID) is disconnected!"
+      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
     fi
   }
 
@@ -560,13 +560,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
-      echo "Device: $DEVICE_NAME ($DEVICE_UDID)"
+      echo "$DEVICE_NAME ($DEVICE_UDID)"
       stop-appium $udid >> ${DEVICE_LOG} 2>&1
       stop-wda $udid >> ${DEVICE_LOG} 2>&1
       # wda should be stopped before stf to mark device disconnected asap
       stop-stf $udid >> ${DEVICE_LOG} 2>&1
     else
-      echo "No sense to stop services for unavailable device: $name;  udid: $udud"
+      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
     fi
 
   }
@@ -880,7 +880,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       Flags:
           --help | -h    Print help
       Arguments:
-          status              Status of the Device Farm iOS agent
+          status [udid]       Status of the Device Farm iOS agent services [all or for exact device by udid]
           setup               Setup Devices Farm iOS agent
           authorize-simulator Authorize whitelisted simulators
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
@@ -1100,7 +1100,11 @@ case "$1" in
         syncSimulators
         ;;
     status)
-        status
+        if [ -z $2 ]; then
+          status
+        else
+         status-device $2
+        fi
         ;;
     version)
         version
