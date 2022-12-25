@@ -59,7 +59,7 @@ export physical=
 export simulator=
 
 
-export physical=`cat ${connectedDevices} | grep $udid | grep 'Attached'`
+export physical=`cat ${connectedDevices} | grep $udid`
 #echo physical: $physical
 
 export DEVICETYPE='Phone'
