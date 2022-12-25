@@ -29,6 +29,25 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 * Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
 * Download v1.0.98+ go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/download/v1.0.98/go-ios-mac.zip) and put into `/usr/local/bin`
 
+### Prepare WebDriverAgent.ipa file
+
+You need an Apple Developer account to sign in and build **WebDriverAgent**.
+
+1. Open **WebDriverAgent.xcodeproj** in Xcode.
+2. Ensure a team is selected before building the application. To do this, go to *Targets* and select each target (one at a time). There should be a field for assigning team certificates to the target.
+3. Remove your **WebDriverAgent** folder from *DerivedData* and run *Clean build folder* (just in case).
+4. Build the application by selecting the *WebDriverAgentRunner* target and build for *Generic iOS Device*. Run *Product -> Build for testing*. This will create a *Products/Debug-iphoneos* in the specified project directory.  
+ *Example*: **/Users/<username>/Library/Developer/Xcode/DerivedData/WebDriverAgent-dzxbpamuepiwamhdbyvyfkbecyer/Build/Products/Debug-iphoneos**
+5. Go to the "Products/Debug-iphoneos" directory and run:
+ **mkdir Payload**
+6. Copy the WebDriverAgentRunner-Runner.app to the Payload directory:
+ **cp -r WebDriverAgentRunner-Runner.app Payload**
+7. Finally, zip up the project as an *.ipa file:
+ **zip -r WebDriverAgent.ipa ./Payload**
+   > Make sure to specify relative `./Payload` to archive only Payload folder content
+8. Get the WebDriverAgent.ipa file and put it onto the mcloud-ios host
+
+
 ## iOS-agent setup
 * Clone mcloud-ios repo
 ```
