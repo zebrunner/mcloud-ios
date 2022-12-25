@@ -230,6 +230,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
+      if [ -r $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist ]; then
+        # unload explicitly in advance in case it is secondary etc setup
+        launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      fi
       prepare-device $udid
 
       cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
@@ -237,8 +241,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
 
-      #unload explicitly in advance in case it is secondary etc setup
-      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      # load syncup script to restart service and recover device at any failure
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
@@ -304,6 +307,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [ -n "$physical" ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID)"
         ios image auto --udid=$udid
+        stop-wda $udid
         ios uninstall $WDA_BUNDLEID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
