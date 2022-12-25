@@ -207,6 +207,18 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # export all ZBR* variables to save user input
     export_settings
 
+
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_MCLOUD_WDA_PATH=$local_value
+      fi
+      confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
+
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
     do
@@ -218,6 +230,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
+      prepare-device $udid
+
       cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
@@ -228,6 +242,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
+    echo
     echo "MCloud agent services will be started automatically soon for connected devices..."
 
   }
@@ -275,6 +290,38 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm -rf stf
     rm -f ./metaData/*.env
     rm -f ./metaData/*.json
+  }
+
+  prepare-device() {
+    udid=$1
+
+    . ./configs/getDeviceArgs.sh $udid
+
+    # mount developer images, unistall existing wda, install fresh one. start, test and stop
+    # for simulators informa about prerequisites to build and install wda manually
+
+    if [ -n "$device" ]; then
+      if [ -n "$physical" ]; then
+        echo "$DEVICE_NAME ($DEVICE_UDID)"
+        ios image auto --udid=$udid
+        ios uninstall $WDA_BUNDLEID --udid=$udid
+        ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
+
+        start-wda $udid > ${DEVICE_LOG} 2>&1
+        if [ $? -eq 0 ]; then
+          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
+        else
+          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Analyze ${DEVICE_LOG} for details."
+          return -1
+        fi
+        stop-wda $udid > ${DEVICE_LOG} 2>&1
+      else
+        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed in advance via XCode!"
+      fi
+    else
+      echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
+    fi
+
   }
 
   start() {
@@ -945,9 +992,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   syncSimulators() {
+    echo
     echo `date +"%T"` Sync Simulators script started
     xcrun simctl list --json > ${SIMULATORS}
     echo `date +"%T"` Sync Simulators script finished
+    echo
   }
 
   replace() {
