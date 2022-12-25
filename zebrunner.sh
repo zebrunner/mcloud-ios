@@ -979,7 +979,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       Arguments:
           status [udid]       Status of the Device Farm iOS agent services [all or for exact device by udid]
           setup               Setup Devices Farm iOS agent
-          authorize-simulator Authorize whitelisted simulators
           start [udid]        Start Device Farm iOS agent services [all or for exact device by udid]
           stop [udid]         Stop Device Farm iOS agent services and remove logs [all or for exact device by udid]
           restart [udid]      Restart Device Farm iOS agent services [all or for exact device by udid]
@@ -1103,9 +1102,6 @@ case "$1" in
         ;;
     restore)
         restore
-        ;;
-    authorize-simulator)
-        syncSimulators
         ;;
     status)
         if [ -z $2 ]; then
