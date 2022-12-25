@@ -91,6 +91,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo_warning "Appium is not detected! Interrupt setup if you don't have it installed!"
     fi
 
+    echo ""
+    echo_warning "Make sure to register your devices and simulators in devices.txt!"
+
     echo
 
     # load default interactive installer settings
@@ -203,9 +206,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       npm link --force
     fi
     cd "${BASEDIR}"
-
-    echo ""
-    echo_warning "Make sure to register your devices and simulators in devices.txt!"
 
     syncSimulators
     # export all ZBR* variables to save user input
