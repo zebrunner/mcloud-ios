@@ -54,6 +54,11 @@ if [ -f "${WDA_ENV}" ]; then
   . ${WDA_ENV}
 fi
 
+#reset to generate new value per udid
+export physical=
+export simulator=
+
+
 export physical=`cat ${connectedDevices} | grep $udid | grep 'Attached'`
 #echo physical: $physical
 
