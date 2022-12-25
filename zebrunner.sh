@@ -356,6 +356,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     wait
     echo
 
+    sleep 3
     status
   }
 
@@ -379,6 +380,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       fi
       start-appium $udid >> ${DEVICE_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
+
+      status-device $udid
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
@@ -777,7 +780,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       #Hit the Appium status URL to see if it is available
-      if curl -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
+      #  --max-time 10     (how long each retry will wait)
+      #  --retry 5         (it will retry 5 times)
+      #  --retry-delay 0   (an exponential backoff algorithm)
+      #  --retry-max-time  (total time before it's considered failed)
+      if curl --max-time 3 --retry 3 --retry-delay 0 --retry-max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
       then
         echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
       else
