@@ -43,12 +43,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     print_banner
 
     # software prerequisites check like appium, xcode etc
-    #which ios-deploy > /dev/null
-    #if [ ! $? -eq 0 ]; then
-    #  echo_warning "Unable to proceed as ios-deploy utility is missed!"
-    #  exit -1
-    #fi
 
+    #TODO: seema like not needed if ipa/app build on different hosts    
     which xcodebuild > /dev/null
     if [ ! $? -eq 0 ]; then
       echo_warning "Unable to proceed as XCode application is missed!"
