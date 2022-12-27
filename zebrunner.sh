@@ -614,6 +614,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     . ./configs/getDeviceArgs.sh $udid
     echo "Recovering services for $DEVICE_NAME ($DEVICE_UDID)"
+    stop-stf $udid >> ${DEVICE_LOG} 2>&1 &
+
     start-wda $udid >> ${DEVICE_LOG} 2>&1 &
     start-appium $udid >> ${DEVICE_LOG} 2>&1 &
     start-stf $udid >> ${DEVICE_LOG} 2>&1 &
