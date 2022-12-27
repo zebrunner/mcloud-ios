@@ -47,14 +47,16 @@ if [ -z $proxy_port ]; then
   export proxy_port=9000
 fi
 
-export APPIUM_LOG="logs/appium_${name}.log"
-export STF_LOG="logs/stf_${name}.log"
-export WDA_LOG="logs/wda_${name}.log"
+export DEVICE_LOG="logs/${name}.log"
 
 export WDA_ENV="${metaDataFolder}/${name}.env"
 if [ -f "${WDA_ENV}" ]; then
   . ${WDA_ENV}
 fi
+
+#reset to generate new value per udid
+export physical=
+export simulator=
 
 
 export physical=`cat ${connectedDevices} | grep $udid`

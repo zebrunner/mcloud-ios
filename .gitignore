@@ -12,3 +12,4 @@ stf
 *.log
 metaData/connectedDevices.txt
 metaData/simulators.txt
+WebDriverAgent.ipa
