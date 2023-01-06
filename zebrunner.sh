@@ -253,12 +253,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
 
-      # load syncup script to restart service and recover device at any failure
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      # to load syncup recovery script run:
+      #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      # to initiate recovery run:
+      #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
+      # to unload recovery script run:
+      #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
     echo
-    echo "MCloud agent services will be started automatically soon for connected devices..."
+    echo "Start service using './zebrunner.sh start'"
 
   }
 
@@ -385,6 +389,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)"
+      #load recovery service script
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
@@ -679,6 +685,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)"
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       stop-appium $udid >> ${DEVICE_LOG} 2>&1
       stop-wda $udid >> ${DEVICE_LOG} 2>&1
       # wda should be stopped before stf to mark device disconnected asap
