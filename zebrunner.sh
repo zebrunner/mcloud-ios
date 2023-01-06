@@ -1121,7 +1121,7 @@ case "$1" in
           start
         else
          stop-device $2
-         start-device
+         start-device $2
         fi
         ;;
     check-device)
