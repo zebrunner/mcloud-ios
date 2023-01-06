@@ -214,6 +214,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ ! -z $local_value ]]; then
         ZBR_MCLOUD_WDA_PATH=$local_value
       fi
+
+      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
+        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
+        continue
+      fi
+
       confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
       is_confirmed=$?
     done
