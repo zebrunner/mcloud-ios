@@ -800,12 +800,19 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
+      # verify if recovery script is loaded otherwise device services are stopped!
+      launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud"
+      if [ $? -eq 1 ]; then
+        echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
+        return 0
+      fi
+
       #Hit the Appium status URL to see if it is available
       #  --max-time 10     (how long each retry will wait)
       #  --retry 5         (it will retry 5 times)
       #  --retry-delay 0   (an exponential backoff algorithm)
       #  --retry-max-time  (total time before it's considered failed)
-      if curl --max-time 3 --retry 3 --retry-delay 0 --retry-max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
+      if curl --max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
       then
         echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
       else
