@@ -158,6 +158,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ ! -z $local_value ]]; then
         ZBR_MCLOUD_APPIUM_PATH=$local_value
       fi
+
+      if [[ ! -r $ZBR_MCLOUD_APPIUM_PATH/lib/main.js ]]; then
+        echo_warning "Appum path is invalid as $ZBR_MCLOUD_APPIUM_PATH/lib/main.js is not found!"
+        continue
+      fi
+
       confirm "Appium path: $ZBR_MCLOUD_APPIUM_PATH" "Continue?" "y"
       is_confirmed=$?
     done
