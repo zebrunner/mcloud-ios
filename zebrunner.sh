@@ -801,7 +801,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       # verify if recovery script is loaded otherwise device services are stopped!
-      launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud"
+      launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud" > /dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
         return 0
