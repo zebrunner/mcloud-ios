@@ -158,6 +158,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ ! -z $local_value ]]; then
         ZBR_MCLOUD_APPIUM_PATH=$local_value
       fi
+
+      if [[ ! -r $ZBR_MCLOUD_APPIUM_PATH/lib/main.js ]]; then
+        echo_warning "Appum path is invalid as $ZBR_MCLOUD_APPIUM_PATH/lib/main.js is not found!"
+        continue
+      fi
+
       confirm "Appium path: $ZBR_MCLOUD_APPIUM_PATH" "Continue?" "y"
       is_confirmed=$?
     done
@@ -214,6 +220,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ ! -z $local_value ]]; then
         ZBR_MCLOUD_WDA_PATH=$local_value
       fi
+
+      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
+        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
+        continue
+      fi
+
       confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
       is_confirmed=$?
     done
@@ -241,12 +253,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
       replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
 
-      # load syncup script to restart service and recover device at any failure
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      # to load syncup recovery script run:
+      #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      # to initiate recovery run:
+      #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
+      # to unload recovery script run:
+      #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
     echo
-    echo "MCloud agent services will be started automatically soon for connected devices..."
+    echo "Start service using './zebrunner.sh start'"
 
   }
 
@@ -373,6 +389,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)"
+      #load recovery service script
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
@@ -668,6 +686,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)"
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       stop-appium $udid >> ${DEVICE_LOG} 2>&1
       stop-wda $udid >> ${DEVICE_LOG} 2>&1
       # wda should be stopped before stf to mark device disconnected asap
@@ -782,12 +801,19 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
+      # verify if recovery script is loaded otherwise device services are stopped!
+      launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud" > /dev/null 2>&1
+      if [ $? -eq 1 ]; then
+        echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
+        return 0
+      fi
+
       #Hit the Appium status URL to see if it is available
       #  --max-time 10     (how long each retry will wait)
       #  --retry 5         (it will retry 5 times)
       #  --retry-delay 0   (an exponential backoff algorithm)
       #  --retry-max-time  (total time before it's considered failed)
-      if curl --max-time 3 --retry 3 --retry-delay 0 --retry-max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
+      if curl --max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
       then
         echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
       else
@@ -1096,7 +1122,7 @@ case "$1" in
           start
         else
          stop-device $2
-         start-device
+         start-device $2
         fi
         ;;
     check-device)

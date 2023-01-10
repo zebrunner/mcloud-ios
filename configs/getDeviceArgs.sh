@@ -24,6 +24,8 @@ export DEVICE_UDID=$(echo $DEVICE_UDID)
 appium_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 3`
 export appium_port=$(echo $appium_port)
 
+export WDA_HOST=localhost
+
 WDA_PORT=`cat ${devices} | grep "$udid" | cut -d '|' -f 4`
 export WDA_PORT=$(echo $WDA_PORT)
 
