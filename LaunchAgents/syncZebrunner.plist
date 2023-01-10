@@ -20,14 +20,12 @@
 		<string>working_dir_value</string>
 		<key>UserName</key>
 		<string>user_value</string>
-		<key>KeepAlive</key>
-		<dict>
-			<key>SuccessfulExit</key>
-			<false/>
-		</dict>
 
-		<key>RunAtLoad</key>
-		<true/>
+                <key>KeepAlive</key>
+                <false/>
+
+                <key>RunAtLoad</key>
+                <false/>
 
 		<key>AbandonProcessGroup</key>
 		<true/>
