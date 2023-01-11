@@ -96,8 +96,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # unload Devices Manager script if any to avoid restarts during setup
     if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
       launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
-      # do launchagent stop explicitly
-      launchctl kill -9 gui/${UID}/com.zebrunner.mcloud > /dev/null 2>&1
     fi
 
     # Setup MCloud master host settings: protocol, hostname and port
