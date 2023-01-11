@@ -88,12 +88,14 @@ else
     export physical=$DEVICE_NAME
   fi
 
-  deviceClass=$(cat ${BASEDIR}/metaData/device-$udid.json | jq -r ".DeviceClass")
-  if [ "$deviceClass" = "iPad" ]; then
-    export DEVICETYPE='Tablet'
-  fi
-  if [ "$deviceClass" = "AppleTV" ]; then
-    export DEVICETYPE='tvOS'
+  if [[ -r ${BASEDIR}/metaData/device-$udid.json ]]; then
+    deviceClass=$(cat ${BASEDIR}/metaData/device-$udid.json | jq -r ".DeviceClass")
+    if [ "$deviceClass" = "iPad" ]; then
+      export DEVICETYPE='Tablet'
+    fi
+    if [ "$deviceClass" = "AppleTV" ]; then
+      export DEVICETYPE='tvOS'
+    fi
   fi
 fi
 
