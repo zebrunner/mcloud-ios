@@ -365,13 +365,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 	if [[ $REPLY == *"Attached"* ]]; then
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
-          echo "udid: $udid"
+          echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           start-device $udid
         elif [[ $REPLY == *"Detached"* ]]; then
           # parse "DeviceID" and find "SerialNumber" in logs to stop services
           deviceId=`echo $REPLY | jq -r ".DeviceID"`
           # get line by DeviceID for Attached action and parse SerialNuber/udid
           udid=`cat ${LISTEN_LOG} | grep $deviceId | grep "Attached"  jq -r ".Properties.SerialNumber"`
+          echo "$DEVICE_NAME ($DEVICE_UDID): Stop services for detached device."
           stop-device $udid
         else
           echo "Unknown usb action detected: $REPLY"
