@@ -377,7 +377,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         action=`echo $REPLY | jq -r ".MessageType"`
         #echo "action: $action"
 
-	if [[ $REPLY == *"Attached"* ]]; then
+	if [[ "$action" == "Attached" ]]; then
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
