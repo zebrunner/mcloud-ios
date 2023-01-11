@@ -672,7 +672,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo udid: $udid
 
     . ./configs/getDeviceArgs.sh $udid
-    echo device: $device
+    #echo device: $device
     if [[ -z $device ]]; then
       # there is no sense to restart services as device is disconnected
       echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
