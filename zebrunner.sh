@@ -96,6 +96,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # unload Devices Manager script if any to avoid restarts during setup
     if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
       launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
+      # do launchagent stop explicitly
+      launchctl kill -9 gui/${UID}/com.zebrunner.mcloud > /dev/null 2>&1
     fi
 
     # Setup MCloud master host settings: protocol, hostname and port
@@ -384,7 +386,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           # remount obligatory developer images automatically on each reboot and even for each reconnect
           ios image auto --udid=$udid
-          # TODO: we explicitly do stop because 'ios listen' return historycal line for last connected device. in this case we will restart services.
+          # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
           start-device $udid
@@ -395,7 +397,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   listen() {
-    # do analysis of 'ios listen' output and organize automatic start/stop for connected/disconnected device
+    # do analysis of ios listen output and organize automatic start/stop for connected/disconnected device
     ios listen | on-usb-update
   }
 
@@ -712,9 +714,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo "Stopping MCloud services..."
-
-    #export pids=`ps -eaf | grep ios | grep 'listen' | grep -v grep | awk '{ print $2 }'`
-    #kill_processes $pids
 
     # verify one by one connected devices and authorized simulators
     while read -r line
