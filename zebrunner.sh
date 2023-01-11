@@ -363,6 +363,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 	if [[ $REPLY == *"Attached"* ]]; then
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
+          . ./configs/getDeviceArgs.sh $udid
+
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           # remount obligatory developer images automatically on each reboot and even for each reconnect
           ios image auto --udid=$udid
@@ -370,8 +372,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
           start-device $udid
-        else
-          echo "Unknown usb action detected: $REPLY"
         fi
 
         read
