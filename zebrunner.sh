@@ -100,6 +100,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     export ZBR_MCLOUD_IOS_VERSION=2.0
 
+    # unload Devices Manager script if any to avoid restarts during setup
+    if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
+      launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
+    fi
+
     # Setup MCloud master host settings: protocol, hostname and port
     echo "MCloud SmartTestFarm Settings"
     local is_confirmed=0
@@ -223,8 +228,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
+      echo
       setup-device $udid
-
     done < ${devices}
 
     # register devices manager to manage attach/reboot actions
