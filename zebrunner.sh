@@ -213,9 +213,27 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     cd "${BASEDIR}"
 
     syncSimulators
+
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_MCLOUD_WDA_PATH=$local_value
+      fi
+
+      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
+        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
+        continue
+      fi
+
+      confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
+
+
     # export all ZBR* variables to save user input
     export_settings
-
 
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
@@ -309,23 +327,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [ -n "$device" ]; then
       if [ -n "$physical" ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID)"
-
-        local is_confirmed=0
-        while [[ $is_confirmed -eq 0 ]]; do
-          read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
-          if [[ ! -z $local_value ]]; then
-            ZBR_MCLOUD_WDA_PATH=$local_value
-          fi
-
-          if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
-            echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
-            continue
-          fi
-
-          confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
-          is_confirmed=$?
-        done
-        export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
 
         # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
         ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
