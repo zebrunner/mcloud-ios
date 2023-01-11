@@ -212,23 +212,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     export_settings
 
 
-    local is_confirmed=0
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
-      if [[ ! -z $local_value ]]; then
-        ZBR_MCLOUD_WDA_PATH=$local_value
-      fi
-
-      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
-        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
-        continue
-      fi
-
-      confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
-      is_confirmed=$?
-    done
-    export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
-
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
     do
@@ -240,23 +223,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      if [ -r $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist ]; then
-        # unload explicitly in advance in case it is secondary etc setup
-        launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      fi
-      prepare-device $udid
+      setup-device $udid
 
-      cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
-
-      # to load syncup recovery script run:
-      #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      # to initiate recovery run:
-      #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
-      # to unload recovery script run:
-      #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
     # register devices manager to manage attach/reboot actions
@@ -319,10 +287,33 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm -f ./metaData/*.json
   }
 
-  prepare-device() {
+  setup-device() {
     udid=$1
 
     . ./configs/getDeviceArgs.sh $udid
+
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "WebDriverAgent.ipa path for ${DEVICE_NAME} (${DEVICE_UDID}) [$ZBR_MCLOUD_WDA_PATH]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_MCLOUD_WDA_PATH=$local_value
+      fi
+
+      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
+        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
+        continue
+      fi
+
+      confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
+
+    if [ -r $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist ]; then
+      # unload explicitly in advance in case it is secondary etc setup
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    fi
+
 
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
     # for simulators inform about prerequisites to build and install wda manually
@@ -353,6 +344,18 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
     fi
 
+
+    cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
+
+    # to load syncup recovery script run:
+    #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    # to initiate recovery run:
+    #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
+    # to unload recovery script run:
+    #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
   }
 
   on-usb-update() {
