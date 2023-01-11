@@ -364,8 +364,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
+          # remount obligatory developer images automatically on each reboot and even for each reconnect
+          ios image auto --udid=$udid
           # TODO: we explicitly do stop because 'ios listen' return historycal line for last connected device. in this case we will restart services.
-          # in future let'stry to operate with real-time messages and do only start!
+          # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
           start-device $udid
         else
