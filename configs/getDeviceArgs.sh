@@ -49,7 +49,6 @@ if [ -z $proxy_port ]; then
   export proxy_port=9000
 fi
 
-export LISTEN_LOG="logs/listen.log"
 export DEVICE_LOG="logs/${name}.log"
 
 export WDA_ENV="${metaDataFolder}/${name}.env"

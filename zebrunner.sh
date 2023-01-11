@@ -346,8 +346,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     read
     while true
     do
-        # redirect to ${LISTEN_LOG} to be able to inspect during detach by DeviceID and find SerialNumber
-        echo $REPLY >> ${LISTEN_LOG}
 	#process $REPLY
 	#The new line content is in the variable $REPLY
         #echo REPLY: $REPLY
@@ -366,14 +364,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
-          start-device $udid
-        elif [[ $REPLY == *"Detached"* ]]; then
-          # parse "DeviceID" and find "SerialNumber" in logs to stop services
-          deviceId=`echo $REPLY | jq -r ".DeviceID"`
-          # get line by DeviceID for Attached action and parse SerialNuber/udid
-          udid=`cat ${LISTEN_LOG} | grep $deviceId | grep "Attached"  jq -r ".Properties.SerialNumber"`
-          echo "$DEVICE_NAME ($DEVICE_UDID): Stop services for detached device."
+          # TODO: we explicitly do stop because 'ios listen' return historycal line for last connected device. in this case we will restart services.
+          # in future let'stry to operate with real-time messages and do only start!
           stop-device $udid
+          start-device $udid
         else
           echo "Unknown usb action detected: $REPLY"
         fi
@@ -384,7 +378,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
   listen() {
     # do analysis of 'ios listen' output and organize automatic start/stop for connected/disconnected device
-    ios listen | tail -n +2 | on-usb-update
+    ios listen | on-usb-update
   }
 
   start() {
@@ -738,6 +732,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     stop-appium $udid >> ${DEVICE_LOG} 2>&1
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
     # wda should be stopped before stf to mark device disconnected asap
+    #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
     sleep 1
     stop-stf $udid >> ${DEVICE_LOG} 2>&1
   }
