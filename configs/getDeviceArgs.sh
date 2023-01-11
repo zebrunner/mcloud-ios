@@ -57,31 +57,18 @@ if [ -f "${WDA_ENV}" ]; then
 fi
 
 #reset to generate new value per udid
-export physical=
 export simulator=
-
-
-export physical=`cat ${connectedDevices} | grep $udid`
-#echo physical: $physical
+export physical=
 
 export DEVICETYPE='Phone'
 export PLATFORM_NAME=iOS
 
-if [[ -n "$physical" ]]; then
-  deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
-  if [ "$deviceClass" = "iPad" ]; then
-    export DEVICETYPE='Tablet'
-  fi
-  if [ "$deviceClass" = "AppleTV" ]; then
-    export DEVICETYPE='tvOS'
-  fi
-else
+export simulator=$(cat ${SIMULATORS} | jq -r ".devices[][] | select (.udid==\"$udid\" and .isAvailable==true) | .name")
+if [[ -n $simulator ]]; then
+  # detect DEVICE_TYPE to be able to override for Tablet and AppleTV
+
   export simulatorType=$(cat ${SIMULATORS} | jq -r ".devices[][] | select (.udid==\"$udid\" and .isAvailable==true) | .deviceTypeIdentifier")
   #echo simulatorType: $simulatorType
-
-  if [[ -n "$simulatorType" ]]; then
-    export simulator=$(cat ${SIMULATORS} | jq -r ".devices[][] | select (.udid==\"$udid\" and .isAvailable==true) | .name")
-  fi
 
   # define valid DEVICETYPE using $simulatorType
   # Phone: com.apple.CoreSimulator.SimDeviceType.iPhone-13-Pro
@@ -94,7 +81,20 @@ else
   if [[ "$simulatorType" == *Apple-TV* ]]; then
     export DEVICETYPE='tvOS'
   fi
+else
+  # verify if physical device is connected
+  ios list | grep $udid > /dev/null 2>&1
+  if [[ $? -eq 0 ]]; then
+    export physical=$DEVICE_NAME
+  fi
 
+  deviceClass=$(cat ${BASEDIR}/metaData/device-$udid.json | jq -r ".DeviceClass")
+  if [ "$deviceClass" = "iPad" ]; then
+    export DEVICETYPE='Tablet'
+  fi
+  if [ "$deviceClass" = "AppleTV" ]; then
+    export DEVICETYPE='tvOS'
+  fi
 fi
 
 export device="$physical$simulator"
