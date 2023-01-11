@@ -384,7 +384,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
   listen() {
     # do analysis of 'ios listen' output and organize automatic start/stop for connected/disconnected device
-    ios listen | on-usb-update
+    ios listen | tail -n +2 | on-usb-update
   }
 
   start() {
