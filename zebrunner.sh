@@ -325,11 +325,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
-    # for simulators informa about prerequisites to build and install wda manually
+    # for simulators inform about prerequisites to build and install wda manually
 
     if [ -n "$device" ]; then
       if [ -n "$physical" ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID)"
+        # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+        ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+
         ios image auto --udid=$udid
         stop-wda $udid
         ios uninstall $WDA_BUNDLEID --udid=$udid

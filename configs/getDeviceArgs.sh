@@ -89,7 +89,7 @@ else
   fi
 
   #TODO: #171 move iOS device type detection onto the setup level
-  deviceClass=$(ios info --udid=$udid | jq -r ".DeviceClass")
+  deviceClass=$(cat ${BASEDIR}/metaData/device-$udid.json | jq -r ".DeviceClass")
   if [ "$deviceClass" = "iPad" ]; then
     export DEVICETYPE='Tablet'
   fi
