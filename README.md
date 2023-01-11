@@ -8,7 +8,6 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 </p>
 
 ## Software prerequisites
-* Install XCode 11.2+
 * Install npm 8.3.0 or higher
   `npm install -g npm@8.3.0`
 * Install [nvm](https://github.com/nvm-sh/nvm) version manager

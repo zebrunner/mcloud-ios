@@ -42,13 +42,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     # software prerequisites check like appium, xcode etc
 
-    #TODO: seema like not needed if ipa/app build on different hosts    
-    which xcodebuild > /dev/null
-    if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as XCode application is missed!"
-      exit -1
-    fi
-
     which git > /dev/null
     if [ ! $? -eq 0 ]; then
       echo_warning "Unable to proceed as git is missed!"
