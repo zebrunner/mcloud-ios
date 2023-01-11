@@ -259,6 +259,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     done < ${devices}
 
+    # register devices manager to manage attach/reboot actions
+    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
+    # load asap to be able to start services after whitelisted device connect
+    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
     echo
     echo "Start service using './zebrunner.sh start'"
 
@@ -282,6 +289,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     down
 
     # Unload ad remove customized LaunchAgents
+    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
     while read -r line
     do
       udid=`echo $line | cut -d '|' -f ${udid_position}`
