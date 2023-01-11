@@ -88,7 +88,6 @@ else
     export physical=$DEVICE_NAME
   fi
 
-  #TODO: #171 move iOS device type detection onto the setup level
   deviceClass=$(cat ${BASEDIR}/metaData/device-$udid.json | jq -r ".DeviceClass")
   if [ "$deviceClass" = "iPad" ]; then
     export DEVICETYPE='Tablet'
