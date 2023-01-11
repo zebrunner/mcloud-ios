@@ -738,8 +738,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     stop-appium $udid >> ${DEVICE_LOG} 2>&1
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
     # wda should be stopped before stf to mark device disconnected asap
+    sleep 1
     stop-stf $udid >> ${DEVICE_LOG} 2>&1
-
   }
 
 
