@@ -23,8 +23,6 @@ fi
 # udid position in devices.txt to be able to read by sync scripts
 export udid_position=2
 
-export connectedDevices=${metaDataFolder}/connectedDevices.txt
-
 export SIMULATORS=${metaDataFolder}/simulators.txt
 
   print_banner() {
@@ -344,6 +342,50 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
   }
 
+  on-usb-update() {
+    read
+    while true
+    do
+        # redirect to ${LISTEN_LOG} to be able to inspect during detach by DeviceID and find SerialNumber
+        echo $REPLY >> ${LISTEN_LOG}
+	#process $REPLY
+	#The new line content is in the variable $REPLY
+        #echo REPLY: $REPLY
+
+        # message on device connect
+	# {"MessageType":"Attached","DeviceID":27,"Properties":{"ConnectionSpeed":480000000,"ConnectionType":"USB","DeviceID":27,"LocationID":336592896,"ProductID":4776,"SerialNumber":"b09fa26acc4c3f777e9b8b49e3348b7243f862b5"}}
+
+	# message on device disconnect
+	# {"MessageType":"Detached","DeviceID":27,"Properties":{"ConnectionSpeed":0,"ConnectionType":"","DeviceID":0,"LocationID":0,"ProductID":0,"SerialNumber":""}}
+
+        # parse MessageType
+        action=`echo $REPLY | jq -r ".MessageType"`
+        #echo "action: $action"
+
+	if [[ $REPLY == *"Attached"* ]]; then
+          # parse udid and start services
+          udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
+          echo "udid: $udid"
+          start-device $udid
+        elif [[ $REPLY == *"Detached"* ]]; then
+          # parse "DeviceID" and find "SerialNumber" in logs to stop services
+          deviceId=`echo $REPLY | jq -r ".DeviceID"`
+          # get line by DeviceID for Attached action and parse SerialNuber/udid
+          udid=`cat ${LISTEN_LOG} | grep $deviceId | grep "Attached"  jq -r ".Properties.SerialNumber"`
+          stop-device $udid
+        else
+          echo "Unknown usb action detected: $REPLY"
+        fi
+
+        read
+    done
+  }
+
+  listen() {
+    # do analysis of 'ios listen' output and organize automatic start/stop for connected/disconnected device
+    ios listen | on-usb-update
+  }
+
   start() {
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
@@ -351,7 +393,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    ios list > ${connectedDevices}
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -634,13 +675,20 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo udid: $udid
 
     . ./configs/getDeviceArgs.sh $udid
-    echo "Recovering services for $DEVICE_NAME ($DEVICE_UDID)"
-    stop-stf $udid >> ${DEVICE_LOG} 2>&1 &
-    stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
+    echo device: $device
+    if [[ -z $device ]]; then
+      # there is no sense to restart services as device is disconnected
+      echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
+      stop-device $udid
+    else
+      echo "Recover services for $DEVICE_NAME ($DEVICE_UDID)"
+      stop-stf $udid >> ${DEVICE_LOG} 2>&1 &
+      stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
+      sleep 1
 
-    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
-    start-appium $udid >> ${DEVICE_LOG} 2>&1 &
-    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+      start-wda $udid >> ${DEVICE_LOG} 2>&1 &
+      start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+    fi
   }
 
   stop() {
@@ -684,16 +732,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
     . ./configs/getDeviceArgs.sh $udid
 
-    if [ -n "$device" ]; then
-      echo "$DEVICE_NAME ($DEVICE_UDID)"
-      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      stop-appium $udid >> ${DEVICE_LOG} 2>&1
-      stop-wda $udid >> ${DEVICE_LOG} 2>&1
-      # wda should be stopped before stf to mark device disconnected asap
-      stop-stf $udid >> ${DEVICE_LOG} 2>&1
-    else
-      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
-    fi
+    echo "$DEVICE_NAME ($DEVICE_UDID)"
+    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    stop-appium $udid >> ${DEVICE_LOG} 2>&1
+    stop-wda $udid >> ${DEVICE_LOG} 2>&1
+    # wda should be stopped before stf to mark device disconnected asap
+    stop-stf $udid >> ${DEVICE_LOG} 2>&1
 
   }
 
@@ -708,7 +752,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
     #echo udid: $udid
 
-    if [ -n "$physical" ]; then
+    if [ -n "$simulator" ]; then
+      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
+    else
       ios kill $WDA_BUNDLEID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
       #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
@@ -720,8 +766,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
       #echo "ios forward pid: $pids"
       kill_processes $pids
-    else
-      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
     fi
 
     . ./configs/getDeviceArgs.sh $udid
@@ -776,8 +820,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-
-    ios list > ${connectedDevices}
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -1149,6 +1191,9 @@ case "$1" in
         else
          status-device $2
         fi
+        ;;
+    listen)
+        listen
         ;;
     version)
         version
