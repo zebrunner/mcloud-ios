@@ -333,12 +333,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         start-wda $udid
         if [ $? -eq 1 ]; then
           echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
-          return 1
+        else
+          stop-wda $udid > ${DEVICE_LOG} 2>&1
+          echo
+          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
         fi
-        stop-wda $udid > ${DEVICE_LOG} 2>&1
-        echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
       else
-        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed in advance via XCode!"
+        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
       fi
     else
       echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
@@ -357,7 +358,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # to unload recovery script run:
     #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
 
-    return 0
   }
 
   on-usb-update() {
