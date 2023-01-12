@@ -241,6 +241,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       echo
       setup-device $udid
+     
     done < ${devices}
 
     # register devices manager to manage attach/reboot actions
@@ -330,13 +331,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
         start-wda $udid
-        if [ $? -eq 0 ]; then
-          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
-        else
+        if [ $? -eq 1 ]; then
           echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
-          return -1
+          return 1
         fi
         stop-wda $udid > ${DEVICE_LOG} 2>&1
+        echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
       else
         echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed in advance via XCode!"
       fi
@@ -356,6 +356,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
     # to unload recovery script run:
     #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+
+    return 0
   }
 
   on-usb-update() {
