@@ -450,9 +450,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
-        exit -1
+        return 1
       fi
-      start-appium $udid >> ${DEVICE_LOG} 2>&1
+      start-appium $udid >> ${APPIUM_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
       status-device $udid
@@ -660,27 +660,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     return 0
   }
 
-  check-device() {
-    udid=$1
-    if [ "$udid" == "" ]; then
-      echo_warning "Unable to check WDA without device udid!"
-      return 0
-    fi
-    #echo udid: $udid
-
-    . ./configs/getDeviceArgs.sh $udid
-    echo "Keeping WDA MJPEG connection until it is alive..."
-    echo "Press Ctrl-C to stop listening"
-
-    nc localhost ${MJPEG_PORT}
-    echo "Connection to WDA $MJPEG_PORT is closed."
-
-    # as only connection corrupted restart wda and stf services
-    echo "Restarting WDA and STF service for $name..."
-    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
-    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
-  }
-
   recover() {
     udid=$1
     if [ "$udid" == "" ]; then
@@ -694,14 +673,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [[ -z $device ]]; then
       # there is no sense to restart services as device is disconnected
       echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
-      stop-device $udid
+      stop-device $udid >> ${DEVICE_LOG} 2>&1 &
     else
       echo "Recover services for $DEVICE_NAME ($DEVICE_UDID)"
-      stop-stf $udid >> ${DEVICE_LOG} 2>&1 &
+      #obligatory reset logs to analyze wda startup correctly
+      stop-stf $udid > ${DEVICE_LOG} 2>&1 &
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
-      start-wda $udid >> ${DEVICE_LOG} 2>&1 &
+
+      start-wda $udid >> ${DEVICE_LOG} 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
+        stop-device $udid >> ${DEVICE_LOG} 2>&1 &
+        return 1
+      fi
+
       start-stf $udid >> ${DEVICE_LOG} 2>&1 &
     fi
   }
@@ -746,7 +733,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo "$DEVICE_NAME ($DEVICE_UDID)"
     launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-    stop-appium $udid >> ${DEVICE_LOG} 2>&1
+    stop-appium $udid >> ${APPIUM_LOG} 2>&1
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
     # wda should be stopped before stf to mark device disconnected asap
     #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
@@ -772,7 +759,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
       #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
-      echo "ios ruwda pid: $pids"
+      #echo "ios ruwda pid: $pids"
       kill_processes $pids
 
       # kill ios forward proxy requests
@@ -1179,9 +1166,6 @@ case "$1" in
          stop-device $2
          start-device $2
         fi
-        ;;
-    check-device)
-        check-device $2
         ;;
     recover)
         recover $2
