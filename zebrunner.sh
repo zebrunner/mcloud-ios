@@ -81,6 +81,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo ""
     echo_warning "Make sure to register your devices and simulators in devices.txt!"
 
+
+    echo_warning "Your services needs to be stopped during setup."
+    confirm "" "      Stop now?" "y"
+    if [[ $? -eq 1 ]]; then
+      stop
+    else
+      echo_warning "Unable to setup with started services!"
+      exit -1
+    fi
+
     echo
 
     # load default interactive installer settings
@@ -185,7 +195,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo
     echo "Pull STF updates:"
-    stf_branch=2.4.2
+    stf_branch=develop
     if [ ! -d stf ]; then
       git clone https://github.com/zebrunner/stf.git
       cd stf
@@ -251,8 +261,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # load asap to be able to start services after whitelisted device connect
     launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
 
-    echo
-    echo "Start service using './zebrunner.sh start'"
+    echo_warning "Your services needs to be started after setup."
+    confirm "" "      Start now?" "y"
+    if [[ $? -eq 1 ]]; then
+      start
+    fi
 
   }
 
