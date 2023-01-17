@@ -23,8 +23,6 @@ fi
 # udid position in devices.txt to be able to read by sync scripts
 export udid_position=2
 
-export connectedDevices=${metaDataFolder}/connectedDevices.txt
-
 export SIMULATORS=${metaDataFolder}/simulators.txt
 
   print_banner() {
@@ -43,13 +41,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     print_banner
 
     # software prerequisites check like appium, xcode etc
-
-    #TODO: seema like not needed if ipa/app build on different hosts    
-    which xcodebuild > /dev/null
-    if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as XCode application is missed!"
-      exit -1
-    fi
 
     which git > /dev/null
     if [ ! $? -eq 0 ]; then
@@ -90,6 +81,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo ""
     echo_warning "Make sure to register your devices and simulators in devices.txt!"
 
+
+    echo_warning "Your services needs to be stopped during setup."
+    confirm "" "      Stop now?" "y"
+    if [[ $? -eq 1 ]]; then
+      stop
+    else
+      echo_warning "Unable to setup with started services!"
+      exit -1
+    fi
+
     echo
 
     # load default interactive installer settings
@@ -101,6 +102,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     export ZBR_MCLOUD_IOS_VERSION=2.0
+
+    # unload Devices Manager script if any to avoid restarts during setup
+    if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
+      launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
+    fi
 
     # Setup MCloud master host settings: protocol, hostname and port
     echo "MCloud SmartTestFarm Settings"
@@ -189,7 +195,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo
     echo "Pull STF updates:"
-    stf_branch=2.4.1
+    stf_branch=2.4.3
     if [ ! -d stf ]; then
       git clone https://github.com/zebrunner/stf.git
       cd stf
@@ -210,9 +216,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     cd "${BASEDIR}"
 
     syncSimulators
-    # export all ZBR* variables to save user input
-    export_settings
-
 
     local is_confirmed=0
     while [[ $is_confirmed -eq 0 ]]; do
@@ -231,6 +234,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     done
     export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
 
+
+    # export all ZBR* variables to save user input
+    export_settings
+
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
     do
@@ -242,27 +249,23 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      if [ -r $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist ]; then
-        # unload explicitly in advance in case it is secondary etc setup
-        launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      fi
-      prepare-device $udid
-
-      cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
-      replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
-
-      # to load syncup recovery script run:
-      #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      # to initiate recovery run:
-      #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
-      # to unload recovery script run:
-      #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      echo
+      setup-device $udid
+     
     done < ${devices}
 
-    echo
-    echo "Start service using './zebrunner.sh start'"
+    # register devices manager to manage attach/reboot actions
+    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
+    # load asap to be able to start services after whitelisted device connect
+    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
+    echo_warning "Your services needs to be started after setup."
+    confirm "" "      Start now?" "y"
+    if [[ $? -eq 1 ]]; then
+      start
+    fi
 
   }
 
@@ -284,6 +287,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     down
 
     # Unload ad remove customized LaunchAgents
+    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
     while read -r line
     do
       udid=`echo $line | cut -d '|' -f ${udid_position}`
@@ -311,37 +317,101 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm -f ./metaData/*.json
   }
 
-  prepare-device() {
+  setup-device() {
     udid=$1
 
     . ./configs/getDeviceArgs.sh $udid
 
+    if [ -r $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist ]; then
+      # unload explicitly in advance in case it is secondary etc setup
+      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    fi
+
+
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
-    # for simulators informa about prerequisites to build and install wda manually
+    # for simulators inform about prerequisites to build and install wda manually
 
     if [ -n "$device" ]; then
       if [ -n "$physical" ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID)"
+
+        # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+        ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+
         ios image auto --udid=$udid
         stop-wda $udid
         ios uninstall $WDA_BUNDLEID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
         start-wda $udid
-        if [ $? -eq 0 ]; then
-          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
-        else
+        if [ $? -eq 1 ]; then
           echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
-          return -1
+        else
+          stop-wda $udid > ${DEVICE_LOG} 2>&1
+          echo
+          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
         fi
-        stop-wda $udid > ${DEVICE_LOG} 2>&1
       else
-        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed in advance via XCode!"
+        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
       fi
     else
       echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
     fi
 
+
+    cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
+    replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
+
+    # to load syncup recovery script run:
+    #   launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    # to initiate recovery run:
+    #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
+    # to unload recovery script run:
+    #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+
+  }
+
+  on-usb-update() {
+    read
+    while true
+    do
+	#process $REPLY
+	#The new line content is in the variable $REPLY
+        #echo REPLY: $REPLY
+
+        # message on device connect
+	# {"MessageType":"Attached","DeviceID":27,"Properties":{"ConnectionSpeed":480000000,"ConnectionType":"USB","DeviceID":27,"LocationID":336592896,"ProductID":4776,"SerialNumber":"b09fa26acc4c3f777e9b8b49e3348b7243f862b5"}}
+
+	# message on device disconnect
+	# {"MessageType":"Detached","DeviceID":27,"Properties":{"ConnectionSpeed":0,"ConnectionType":"","DeviceID":0,"LocationID":0,"ProductID":0,"SerialNumber":""}}
+
+        # parse MessageType
+        action=`echo $REPLY | jq -r ".MessageType"`
+        #echo "action: $action"
+
+	if [[ "$action" == "Attached" ]]; then
+          # parse udid and start services
+          udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
+          . ./configs/getDeviceArgs.sh $udid
+
+          echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
+          # remount obligatory developer images automatically on each reboot and even for each reconnect
+          ios image auto --udid=$udid
+          # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
+          # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
+          stop-device $udid
+          start-device $udid
+        fi
+
+        read
+    done
+  }
+
+  listen() {
+    # do analysis of ios listen output and organize automatic start/stop for connected/disconnected device
+    ios listen | on-usb-update
   }
 
   start() {
@@ -351,7 +421,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    ios list > ${connectedDevices}
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -394,9 +463,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
-        exit -1
+        return 1
       fi
-      start-appium $udid >> ${DEVICE_LOG} 2>&1
+      start-appium $udid >> ${APPIUM_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
       status-device $udid
@@ -604,27 +673,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     return 0
   }
 
-  check-device() {
-    udid=$1
-    if [ "$udid" == "" ]; then
-      echo_warning "Unable to check WDA without device udid!"
-      return 0
-    fi
-    #echo udid: $udid
-
-    . ./configs/getDeviceArgs.sh $udid
-    echo "Keeping WDA MJPEG connection until it is alive..."
-    echo "Press Ctrl-C to stop listening"
-
-    nc localhost ${MJPEG_PORT}
-    echo "Connection to WDA $MJPEG_PORT is closed."
-
-    # as only connection corrupted restart wda and stf services
-    echo "Restarting WDA and STF service for $name..."
-    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
-    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
-  }
-
   recover() {
     udid=$1
     if [ "$udid" == "" ]; then
@@ -634,13 +682,28 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo udid: $udid
 
     . ./configs/getDeviceArgs.sh $udid
-    echo "Recovering services for $DEVICE_NAME ($DEVICE_UDID)"
-    stop-stf $udid >> ${DEVICE_LOG} 2>&1 &
-    stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
+    #echo device: $device
+    if [[ -z $device ]]; then
+      # there is no sense to restart services as device is disconnected
+      echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
+      stop-device $udid >> ${DEVICE_LOG} 2>&1 &
+    else
+      echo "Recover services for $DEVICE_NAME ($DEVICE_UDID)"
+      #obligatory reset logs to analyze wda startup correctly
+      stop-stf $udid > ${DEVICE_LOG} 2>&1 &
+      stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
+      sleep 1
 
-    start-wda $udid >> ${DEVICE_LOG} 2>&1 &
-    start-appium $udid >> ${DEVICE_LOG} 2>&1 &
-    start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+
+      start-wda $udid >> ${DEVICE_LOG} 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
+        stop-device $udid >> ${DEVICE_LOG} 2>&1 &
+        return 1
+      fi
+
+      start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+    fi
   }
 
   stop() {
@@ -651,9 +714,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo "Stopping MCloud services..."
-
-    #export pids=`ps -eaf | grep ios | grep 'listen' | grep -v grep | awk '{ print $2 }'`
-    #kill_processes $pids
 
     # verify one by one connected devices and authorized simulators
     while read -r line
@@ -684,17 +744,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
     . ./configs/getDeviceArgs.sh $udid
 
-    if [ -n "$device" ]; then
-      echo "$DEVICE_NAME ($DEVICE_UDID)"
-      launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      stop-appium $udid >> ${DEVICE_LOG} 2>&1
-      stop-wda $udid >> ${DEVICE_LOG} 2>&1
-      # wda should be stopped before stf to mark device disconnected asap
-      stop-stf $udid >> ${DEVICE_LOG} 2>&1
-    else
-      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
-    fi
-
+    echo "$DEVICE_NAME ($DEVICE_UDID)"
+    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    stop-appium $udid >> ${APPIUM_LOG} 2>&1
+    stop-wda $udid >> ${DEVICE_LOG} 2>&1
+    # wda should be stopped before stf to mark device disconnected asap
+    #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
+    sleep 1
+    stop-stf $udid >> ${DEVICE_LOG} 2>&1
   }
 
 
@@ -708,20 +765,20 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
     #echo udid: $udid
 
-    if [ -n "$physical" ]; then
+    if [ -n "$simulator" ]; then
+      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
+    else
       ios kill $WDA_BUNDLEID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
       #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
-      echo "ios ruwda pid: $pids"
+      #echo "ios ruwda pid: $pids"
       kill_processes $pids
 
       # kill ios forward proxy requests
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
       #echo "ios forward pid: $pids"
       kill_processes $pids
-    else
-      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
     fi
 
     . ./configs/getDeviceArgs.sh $udid
@@ -776,8 +833,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-
-    ios list > ${connectedDevices}
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -1125,9 +1180,6 @@ case "$1" in
          start-device $2
         fi
         ;;
-    check-device)
-        check-device $2
-        ;;
     recover)
         recover $2
         ;;
@@ -1149,6 +1201,9 @@ case "$1" in
         else
          status-device $2
         fi
+        ;;
+    listen)
+        listen
         ;;
     version)
         version

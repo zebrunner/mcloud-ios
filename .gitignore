@@ -10,7 +10,6 @@ tmp/*
 stf
 *.mp4
 *.log
-metaData/connectedDevices.txt
 metaData/simulators.txt
 WebDriverAgent.ipa
 devimages
