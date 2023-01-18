@@ -1015,7 +1015,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     UNSUPPORTED_INDICATOR="Unable to find a destination matching the provided destination specifier"
 
     COUNTER=0
-    while [  $COUNTER -lt $STARTUP_COUNTER ];
+    while [[  $COUNTER -lt $STARTUP_COUNTER ]];
     do
       sleep 1
       if [[ -r ${STARTUP_LOG} ]]
