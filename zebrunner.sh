@@ -238,6 +238,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # export all ZBR* variables to save user input
     export_settings
 
+    # register devices manager to manage attach/reboot actions
+    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
+    # load asap to be able to start services after whitelisted device connect
+
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
     do
@@ -251,15 +257,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       echo
       setup-device $udid
-     
     done < ${devices}
-
-    # register devices manager to manage attach/reboot actions
-    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
-    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
-    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
-    # load asap to be able to start services after whitelisted device connect
-    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
 
     echo_warning "Your services needs to be started after setup."
     confirm "" "      Start now?" "y"
