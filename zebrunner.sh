@@ -341,7 +341,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         ios uninstall $WDA_BUNDLEID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
-        start-wda $udid
+        start-wda $udid > ${DEVICE_LOG} 2>&1
         if [ $? -eq 1 ]; then
           echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
         else
