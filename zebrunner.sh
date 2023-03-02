@@ -432,7 +432,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      #159 iOS device can't correctly open safari browser on iOS Safari Sample test
+      #208 iOS device can't correctly open safari browser on iOS Safari Sample test
       # replaced direct method call by zebrunner.sh otherwise mobile web test doesn't work
       #start-device $udid &
 
