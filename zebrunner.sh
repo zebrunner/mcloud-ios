@@ -432,7 +432,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      start-device $udid &
+      #159 iOS device can't correctly open safari browser on iOS Safari Sample test
+      # replaced direct method call by zebrunner.sh otherwise mobile web test doesn't work
+      #start-device $udid &
+
+      ${BASEDIR}/zebrunner.sh start $udid &
     done < ${devices}
 
     echo "Waiting while services are up&running..."
