@@ -464,6 +464,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo "$DEVICE_NAME ($DEVICE_UDID)"
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!"
+        return 1
+      fi
+
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
