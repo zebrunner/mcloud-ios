@@ -1011,7 +1011,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     STARTUP_COUNTER=$2
 
     STARTUP_INDICATOR="ServerURLHere-"
-    FAIL_INDICATOR=" TEST FAILED "
+    FAIL_INDICATOR="Failed running WDA"
     UNSUPPORTED_INDICATOR="Unable to find a destination matching the provided destination specifier"
 
     COUNTER=0
