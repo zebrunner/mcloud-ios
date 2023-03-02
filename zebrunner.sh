@@ -240,6 +240,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # export all ZBR* variables to save user input
     export_settings
 
+    # register devices manager to manage attach/reboot actions
+    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
+    # load asap to be able to start services after whitelisted device connect
+
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
     do
@@ -253,15 +259,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       echo
       setup-device $udid
-     
     done < ${devices}
-
-    # register devices manager to manage attach/reboot actions
-    cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
-    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
-    replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
-    # load asap to be able to start services after whitelisted device connect
-    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
 
     echo_warning "Your services needs to be started after setup."
     confirm "" "      Start now?" "y"
@@ -345,7 +343,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         ios uninstall $WDA_BUNDLEID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
-        start-wda $udid
+        start-wda $udid > ${DEVICE_LOG} 2>&1
         if [ $? -eq 1 ]; then
           echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
         else
@@ -1017,7 +1015,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     UNSUPPORTED_INDICATOR="Unable to find a destination matching the provided destination specifier"
 
     COUNTER=0
-    while [  $COUNTER -lt $STARTUP_COUNTER ];
+    while [[  $COUNTER -lt $STARTUP_COUNTER ]];
     do
       sleep 1
       if [[ -r ${STARTUP_LOG} ]]
