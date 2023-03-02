@@ -284,7 +284,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     print_banner
 
-    down
+    stop
 
     # Unload ad remove customized LaunchAgents
     launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
