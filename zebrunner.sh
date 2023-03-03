@@ -392,17 +392,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         #echo "action: $action"
 
 	if [[ "$action" == "Attached" ]]; then
+          echo REPLY: $REPLY
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
 
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           # remount obligatory developer images automatically on each reboot and even for each reconnect
-          ios image auto --udid=$udid
+          ios image auto --udid=$udid > /dev/null 2>&1
           # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
-          start-device $udid
+
+          # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+          # only in this case appium has access to webview content. Otherwise, such issue occur:
+          #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+          ( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -432,11 +437,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      #208 iOS device can't correctly open safari browser on iOS Safari Sample test
-      # replaced direct method call by zebrunner.sh otherwise mobile web test doesn't work
-      #start-device $udid &
-
-      ${BASEDIR}/zebrunner.sh start $udid &
+      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+      # only in this case appium has access to webview content. Otherwise, such issue occur:
+      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
     echo "Waiting while services are up&running..."
@@ -695,24 +699,19 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo device: $device
     if [[ -z $device ]]; then
       # there is no sense to restart services as device is disconnected
-      echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
+      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Stop services for $DEVICE_NAME ($DEVICE_UDID)"
       stop-device $udid >> ${DEVICE_LOG} 2>&1 &
     else
-      echo "Recover services for $DEVICE_NAME ($DEVICE_UDID)"
+      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Recover services for $DEVICE_NAME ($DEVICE_UDID)"
       #obligatory reset logs to analyze wda startup correctly
       stop-stf $udid > ${DEVICE_LOG} 2>&1 &
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
-
-      start-wda $udid >> ${DEVICE_LOG} 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
-        stop-device $udid >> ${DEVICE_LOG} 2>&1 &
-        return 1
-      fi
-
-      start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+      # only in this case appium has access to webview content. Otherwise, such issue occur:
+      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
