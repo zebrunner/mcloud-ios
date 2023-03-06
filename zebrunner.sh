@@ -356,7 +356,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
         start-wda $udid > ${DEVICE_LOG} 2>&1
         if [ $? -eq 1 ]; then
-          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
+          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Review ""${DEVICE_LOG}"" for details."
         else
           stop-wda $udid > ${DEVICE_LOG} 2>&1
           echo
