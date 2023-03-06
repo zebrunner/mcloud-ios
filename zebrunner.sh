@@ -653,15 +653,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #fi
 
     if [ -n "$physical" ]; then
-      #TODO: move install WDA ipa onto the setup state
-#       ios image auto --basedir=./DeveloperDiskImages --udid=$DEVICE_UDID
-#      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Installing WDA application on device"
-#      #TODO: use path to ipa from env var!
-#      ios install --path=./WebDriverAgent.ipa --udid=$DEVICE_UDID
-
-#      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Killing existing WebDriverAgent application if any"
-#      ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid > /dev/null 2>&1
-
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
       ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=WebDriverAgentRunner.xctest \
