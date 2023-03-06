@@ -286,10 +286,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     stop
 
-    # Unload ad remove customized LaunchAgents
-    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
-    rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
-
     while read -r line
     do
       udid=`echo $line | cut -d '|' -f ${udid_position}`
