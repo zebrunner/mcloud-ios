@@ -273,18 +273,20 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       setup-device $udid
     done < ${devices}
 
-    echo_warning "Your services needs to be started after setup."
-    confirm "" "      Start now?" "y"
-    if [[ $? -eq 1 ]]; then
-      start
-    fi
+    echo_warning "Your services needs to be started using './zebrunner.sh start'!"
+    #211 The command line does not appear after finishing the ./zebrunner.sh setup/start
+
+    # commented request about automatic start as it has problems with finishing...
+    #confirm "" "      Start now?" "y"
+    #if [[ $? -eq 1 ]]; then
+    #  start
+    #fi
 
   }
 
   shutdown() {
     if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup MCloud iOS agent in advance using: ./zebrunner.sh setup"
-      echo_telegram
+      echo_warning "MCloud iOS agent is already erased!"
       exit -1
     fi
 
@@ -319,7 +321,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm .env
     rm backup/settings.env
 
-    echo "Removing devices metadata and STF"
+    echo "Removing installed STF and devices metadata..."
     rm -rf stf
     rm -f ./metaData/*.env
     rm -f ./metaData/*.json
