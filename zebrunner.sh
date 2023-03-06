@@ -236,6 +236,18 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     done
     export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
 
+    echo
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "WebDriverAgent bundle id: [$ZBR_WDA_BUNDLE_ID]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_WDA_BUNDLE_ID=$local_value
+      fi
+
+      confirm "WebDriverAgent bundle id: $ZBR_WDA_BUNDLE_ID" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
 
     # export all ZBR* variables to save user input
     export_settings
@@ -336,7 +348,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
         ios image auto --udid=$udid
         stop-wda $udid
-        ios uninstall $WDA_BUNDLEID --udid=$udid
+        echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
+        ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
         start-wda $udid > ${DEVICE_LOG} 2>&1
@@ -645,11 +658,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 #      ios install --path=./WebDriverAgent.ipa --udid=$DEVICE_UDID
 
 #      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Killing existing WebDriverAgent application if any"
-#      ios kill $WDA_BUNDLEID --udid=$udid > /dev/null 2>&1
+#      ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid > /dev/null 2>&1
 
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      ios runwda --bundleid=$WDA_BUNDLEID --testrunnerbundleid=$WDA_BUNDLEID --xctestconfig=WebDriverAgentRunner.xctest \
+      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=WebDriverAgentRunner.xctest \
 	--env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
     else
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
@@ -773,7 +786,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [ -n "$simulator" ]; then
       xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
     else
-      ios kill $WDA_BUNDLEID --udid=$udid
+      ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
       #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
