@@ -82,13 +82,15 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo_warning "Make sure to register your devices and simulators in devices.txt!"
 
 
-    echo_warning "Your services needs to be stopped during setup."
-    confirm "" "      Stop now?" "y"
-    if [[ $? -eq 1 ]]; then
-      stop
-    else
-      echo_warning "Unable to setup with started services!"
-      exit -1
+    if [ -f backup/settings.env ]; then
+      echo_warning "Your services needs to be stopped during setup."
+      confirm "" "      Stop now?" "y"
+      if [[ $? -eq 1 ]]; then
+        stop
+      else
+        echo_warning "Unable to setup with started services!"
+        exit -1
+      fi
     fi
 
     echo
@@ -195,7 +197,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo
     echo "Pull STF updates:"
-    stf_branch=2.4.3
+    stf_branch=2.4.4
     if [ ! -d stf ]; then
       git clone https://github.com/zebrunner/stf.git
       cd stf
@@ -234,6 +236,18 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     done
     export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
 
+    echo
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "WebDriverAgent bundle id: [$ZBR_WDA_BUNDLE_ID]: " local_value
+      if [[ ! -z $local_value ]]; then
+        ZBR_WDA_BUNDLE_ID=$local_value
+      fi
+
+      confirm "WebDriverAgent bundle id: $ZBR_WDA_BUNDLE_ID" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
 
     # export all ZBR* variables to save user input
     export_settings
@@ -259,18 +273,20 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       setup-device $udid
     done < ${devices}
 
-    echo_warning "Your services needs to be started after setup."
-    confirm "" "      Start now?" "y"
-    if [[ $? -eq 1 ]]; then
-      start
-    fi
+    echo_warning "Your services needs to be started using './zebrunner.sh start'!"
+    #211 The command line does not appear after finishing the ./zebrunner.sh setup/start
+
+    # commented request about automatic start as it has problems with finishing...
+    #confirm "" "      Start now?" "y"
+    #if [[ $? -eq 1 ]]; then
+    #  start
+    #fi
 
   }
 
   shutdown() {
     if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup MCloud iOS agent in advance using: ./zebrunner.sh setup"
-      echo_telegram
+      echo_warning "MCloud iOS agent is already erased!"
       exit -1
     fi
 
@@ -282,11 +298,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     print_banner
 
-    down
-
-    # Unload ad remove customized LaunchAgents
-    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
-    rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+    stop
 
     while read -r line
     do
@@ -309,7 +321,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     rm .env
     rm backup/settings.env
 
-    echo "Removing devices metadata and STF"
+    echo "Removing installed STF and devices metadata..."
     rm -rf stf
     rm -f ./metaData/*.env
     rm -f ./metaData/*.json
@@ -338,12 +350,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
         ios image auto --udid=$udid
         stop-wda $udid
-        ios uninstall $WDA_BUNDLEID --udid=$udid
+        echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
+        ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
         ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
         start-wda $udid > ${DEVICE_LOG} 2>&1
         if [ $? -eq 1 ]; then
-          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started!"
+          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Review ""${DEVICE_LOG}"" for details."
         else
           stop-wda $udid > ${DEVICE_LOG} 2>&1
           echo
@@ -390,17 +403,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         #echo "action: $action"
 
 	if [[ "$action" == "Attached" ]]; then
+          echo REPLY: $REPLY
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
 
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           # remount obligatory developer images automatically on each reboot and even for each reconnect
-          ios image auto --udid=$udid
+          ios image auto --udid=$udid > /dev/null 2>&1
           # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
-          start-device $udid
+
+          # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+          # only in this case appium has access to webview content. Otherwise, such issue occur:
+          #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+          ( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -430,7 +448,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      start-device $udid &
+      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+      # only in this case appium has access to webview content. Otherwise, such issue occur:
+      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
     echo "Waiting while services are up&running..."
@@ -458,6 +479,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       echo "$DEVICE_NAME ($DEVICE_UDID)"
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!"
+        return 1
+      fi
+
       start-wda $udid > ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
@@ -626,18 +653,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #fi
 
     if [ -n "$physical" ]; then
-      #TODO: move install WDA ipa onto the setup state
-#       ios image auto --basedir=./DeveloperDiskImages --udid=$DEVICE_UDID
-#      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Installing WDA application on device"
-#      #TODO: use path to ipa from env var!
-#      ios install --path=./WebDriverAgent.ipa --udid=$DEVICE_UDID
-
-#      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Killing existing WebDriverAgent application if any"
-#      ios kill $WDA_BUNDLEID --udid=$udid > /dev/null 2>&1
-
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      ios runwda --bundleid=$WDA_BUNDLEID --testrunnerbundleid=$WDA_BUNDLEID --xctestconfig=WebDriverAgentRunner.xctest \
+      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=WebDriverAgentRunner.xctest \
 	--env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
     else
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
@@ -683,24 +701,19 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo device: $device
     if [[ -z $device ]]; then
       # there is no sense to restart services as device is disconnected
-      echo "Stop services for $DEVICE_NAME ($DEVICE_UDID)"
+      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Stop services for $DEVICE_NAME ($DEVICE_UDID)"
       stop-device $udid >> ${DEVICE_LOG} 2>&1 &
     else
-      echo "Recover services for $DEVICE_NAME ($DEVICE_UDID)"
+      echo "[$(date +'%d/%m/%Y %H:%M:%S')] Recover services for $DEVICE_NAME ($DEVICE_UDID)"
       #obligatory reset logs to analyze wda startup correctly
       stop-stf $udid > ${DEVICE_LOG} 2>&1 &
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
-
-      start-wda $udid >> ${DEVICE_LOG} 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
-        stop-device $udid >> ${DEVICE_LOG} 2>&1 &
-        return 1
-      fi
-
-      start-stf $udid >> ${DEVICE_LOG} 2>&1 &
+      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
+      # only in this case appium has access to webview content. Otherwise, such issue occur:
+      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
@@ -766,7 +779,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [ -n "$simulator" ]; then
       xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
     else
-      ios kill $WDA_BUNDLEID --udid=$udid
+      ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
       #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
       export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
@@ -1009,7 +1022,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     STARTUP_COUNTER=$2
 
     STARTUP_INDICATOR="ServerURLHere-"
-    FAIL_INDICATOR=" TEST FAILED "
+    FAIL_INDICATOR="Failed running WDA"
     UNSUPPORTED_INDICATOR="Unable to find a destination matching the provided destination specifier"
 
     COUNTER=0
