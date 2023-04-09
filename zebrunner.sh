@@ -277,14 +277,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       setup-device $udid
     done < ${devices}
 
-    echo_warning "Your services needs to be started using './zebrunner.sh start'!"
-    #211 The command line does not appear after finishing the ./zebrunner.sh setup/start
-
-    # commented request about automatic start as it has problems with finishing...
-    #confirm "" "      Start now?" "y"
-    #if [[ $? -eq 1 ]]; then
-    #  start
-    #fi
+    echo_warning "Your services needs to be restarted using './zebrunner.sh restart'!"
 
   }
 
