@@ -224,7 +224,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       reinstall_wda="y"
     fi
 
-    confirm "Uninstall and install WebDriverAgent application (required only if it was updated or in the beginning)?" "Continue?" "$reinstall_wda"
+    confirm "Uninstall and install WebDriverAgent application?\nNote: required only first time or if ipa was updated." "Continue?" "$reinstall_wda"
     export ZBR_MCLOUD_REINSTALL_WDA=$?
 
     if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
@@ -986,7 +986,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     while true; do
       if [[ ! -z $message ]]; then
-        echo "$message"
+        echo -e "$message"
       fi
 
       read -p "$question y/n [$isEnabled]:" response
