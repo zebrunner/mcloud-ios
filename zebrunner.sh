@@ -103,7 +103,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       source backup/settings.env
     fi
 
-    export ZBR_MCLOUD_IOS_VERSION=2.4
+    export ZBR_MCLOUD_IOS_VERSION=2.4.5
 
     # unload Devices Manager script if any to avoid restarts during setup
     if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
