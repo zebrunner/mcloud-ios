@@ -211,13 +211,17 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo
-    confirm "Rebuild STF sources?" "Confirm?" "y"
-    if [[ $? -eq 1 ]]; then
+    confirm "Rebuild SmartTestFarm sources?" "Rebuild?" "$ZBR_MCLOUD_STF_BUILD"
+    if [ $? -eq 1 ]; then
+      export ZBR_MCLOUD_STF_BUILD="y"
       echo "Building iSTF component..."
       nvm use v17.1.0
       npm install
       npm link --force
+    else
+      export ZBR_MCLOUD_STF_BUILD="n"
     fi
+
     cd "${BASEDIR}"
 
     syncSimulators
