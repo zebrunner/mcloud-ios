@@ -219,15 +219,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     syncSimulators
 
-    local reinstall_wda="n"
-    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
-      reinstall_wda="y"
+    confirm "Uninstall and install WebDriverAgent application?\nNote: required only first time or if ipa was updated." "Reinstall?" "$ZBR_MCLOUD_REINSTALL_WDA"
+    if [ $? -eq 1 ]; then
+      export ZBR_MCLOUD_REINSTALL_WDA="y"
+    else
+      export ZBR_MCLOUD_REINSTALL_WDA="n"
     fi
 
-    confirm "Uninstall and install WebDriverAgent application?\nNote: required only first time or if ipa was updated." "Continue?" "$reinstall_wda"
-    export ZBR_MCLOUD_REINSTALL_WDA=$?
-
-    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
+    if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
 
       local is_confirmed=0
       while [[ $is_confirmed -eq 0 ]]; do
@@ -351,7 +350,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
     # for simulators inform about prerequisites to build and install wda manually
 
-    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
+    if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
       echo
       if [ -n "$device" ]; then
         if [ -n "$physical" ]; then
