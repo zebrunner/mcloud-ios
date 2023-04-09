@@ -715,7 +715,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       sleep 1
 
       #211: infinite start loop
-      start-device $udid
+      start-device $udid >> ${DEVICE_LOG} 2>&1 &
 
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
