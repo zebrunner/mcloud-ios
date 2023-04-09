@@ -280,7 +280,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      echo
       setup-device $udid
     done < ${devices}
 
@@ -353,6 +352,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # for simulators inform about prerequisites to build and install wda manually
 
     if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
+      echo
       if [ -n "$device" ]; then
         if [ -n "$physical" ]; then
           echo "$DEVICE_NAME ($DEVICE_UDID)"
