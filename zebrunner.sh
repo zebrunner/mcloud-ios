@@ -178,9 +178,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
 
     echo
-    confirm "S3 storage for storing video and log artifacts." "Enable?" "y"
-    if [[ $? -eq 1 ]]; then
+    confirm "S3 storage for storing video and log artifacts." "Enable?" "$ZBR_MCLOUD_S3_ENABLE"
+    if [ $? -eq 1 ]; then
+      export ZBR_MCLOUD_S3_ENABLE="y"
       set_storage_settings
+    else
+      export ZBR_MCLOUD_S3_ENABLE="n"
     fi
 
     cp .env.original .env
