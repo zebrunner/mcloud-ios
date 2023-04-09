@@ -26,7 +26,7 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 * Install jq
   `brew install jq`
 * Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
-* Download v1.0.98+ go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/download/v1.0.98/go-ios-mac.zip) and put into `/usr/local/bin`
+* Download v1.0.106+ go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/download/v1.0.106/go-ios-mac.zip) and put into `/usr/local/bin`
 
 ### Patch appium
 * Clone Zebrunner Appium and patch sources:
