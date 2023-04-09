@@ -103,7 +103,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       source backup/settings.env
     fi
 
-    export ZBR_MCLOUD_IOS_VERSION=2.0
+    export ZBR_MCLOUD_IOS_VERSION=2.4
 
     # unload Devices Manager script if any to avoid restarts during setup
     if [[ -r $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]]; then
@@ -219,35 +219,46 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     syncSimulators
 
-    local is_confirmed=0
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
-      if [[ ! -z $local_value ]]; then
-        ZBR_MCLOUD_WDA_PATH=$local_value
-      fi
+    local reinstall_wda="n"
+    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
+      reinstall_wda="y"
+    fi
 
-      if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
-        echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
-        continue
-      fi
+    confirm "Uninstall and install WebDriverAgent application (required only if it was updated or in the beginning)?" "Continue?" "$reinstall_wda"
+    export ZBR_MCLOUD_REINSTALL_WDA=$?
 
-      confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
-      is_confirmed=$?
-    done
-    export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
+    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
 
-    echo
-    local is_confirmed=0
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "WebDriverAgent bundle id: [$ZBR_WDA_BUNDLE_ID]: " local_value
-      if [[ ! -z $local_value ]]; then
-        ZBR_WDA_BUNDLE_ID=$local_value
-      fi
+      local is_confirmed=0
+      while [[ $is_confirmed -eq 0 ]]; do
+        read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
+        if [[ ! -z $local_value ]]; then
+          ZBR_MCLOUD_WDA_PATH=$local_value
+        fi
 
-      confirm "WebDriverAgent bundle id: $ZBR_WDA_BUNDLE_ID" "Continue?" "y"
-      is_confirmed=$?
-    done
-    export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
+        if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
+          echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
+          continue
+        fi
+
+        confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
+        is_confirmed=$?
+      done
+      export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
+
+      echo
+      local is_confirmed=0
+      while [[ $is_confirmed -eq 0 ]]; do
+        read -p "WebDriverAgent bundle id: [$ZBR_WDA_BUNDLE_ID]: " local_value
+        if [[ ! -z $local_value ]]; then
+          ZBR_WDA_BUNDLE_ID=$local_value
+        fi
+
+        confirm "WebDriverAgent bundle id: $ZBR_WDA_BUNDLE_ID" "Continue?" "y"
+        is_confirmed=$?
+      done
+      export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
+    fi
 
     # export all ZBR* variables to save user input
     export_settings
@@ -341,34 +352,35 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
     # for simulators inform about prerequisites to build and install wda manually
 
-    if [ -n "$device" ]; then
-      if [ -n "$physical" ]; then
-        echo "$DEVICE_NAME ($DEVICE_UDID)"
+    if [ $ZBR_MCLOUD_REINSTALL_WDA -eq 1 ]; then
+      if [ -n "$device" ]; then
+        if [ -n "$physical" ]; then
+          echo "$DEVICE_NAME ($DEVICE_UDID)"
 
-        # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
-        ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+          # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+          ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
 
-        ios image auto --udid=$udid
-        stop-wda $udid
-        echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
-        ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
-        ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
+          ios image auto --udid=$udid
+          stop-wda $udid
+          echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
+          ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
+          ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
 
-        start-wda $udid > ${DEVICE_LOG} 2>&1
-        if [ $? -eq 1 ]; then
-          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Review ""${DEVICE_LOG}"" for details."
+          start-wda $udid > ${DEVICE_LOG} 2>&1
+          if [ $? -eq 1 ]; then
+            echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Review ""${DEVICE_LOG}"" for details."
+          else
+            stop-wda $udid > ${DEVICE_LOG} 2>&1
+            echo
+            echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
+          fi
         else
-          stop-wda $udid > ${DEVICE_LOG} 2>&1
-          echo
-          echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
+          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
         fi
       else
-        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
+        echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
       fi
-    else
-      echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
     fi
-
 
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
