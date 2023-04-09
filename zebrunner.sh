@@ -414,10 +414,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
 
+          #211: infinite start loop
+          start-device $udid
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          ( ${BASEDIR}/zebrunner.sh start $udid & )
+          #( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -447,10 +449,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
+      #211: infinite start loop
+      # temporary restored original start processto find better solution. #208 reopened as well
+      start-device $udid
+
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      #( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
     echo "Waiting while services are up&running..."
@@ -708,10 +714,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
+      #211: infinite start loop
+      start-device $udid
+
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      #( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
