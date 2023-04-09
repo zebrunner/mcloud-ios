@@ -81,18 +81,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     echo ""
     echo_warning "Make sure to register your devices and simulators in devices.txt!"
 
-
-    if [ -f backup/settings.env ]; then
-      echo_warning "Your services needs to be stopped during setup."
-      confirm "" "      Stop now?" "y"
-      if [[ $? -eq 1 ]]; then
-        stop
-      else
-        echo_warning "Unable to setup with started services!"
-        exit -1
-      fi
-    fi
-
     echo
 
     # load default interactive installer settings
