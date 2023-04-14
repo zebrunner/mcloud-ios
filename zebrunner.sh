@@ -423,7 +423,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          ( ${BASEDIR}/zebrunner.sh start $udid & )
+          ( start-device $udid & )
         fi
 
         read
@@ -456,7 +456,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      ( start-device $udid & ) 
     done < ${devices}
 
     launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
@@ -712,7 +712,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      ( start-device $udid & )
     fi
   }
 
