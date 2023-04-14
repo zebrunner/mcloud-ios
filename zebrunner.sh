@@ -407,6 +407,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
 
+          ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "do nothing as starting is already in progress for $DEVICE_NAME ($DEVICE_UDID)"
+            return 0
+          fi
+
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
           # remount obligatory developer images automatically on each reboot and even for each reconnect
           ios image auto --udid=$udid > /dev/null 2>&1
@@ -414,12 +420,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
 
-          #211: infinite start loop
-          start-device $udid
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          #( ${BASEDIR}/zebrunner.sh start $udid & )
+          ( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -449,24 +453,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
         continue
       fi
 
-      #211: infinite start loop
-      # temporary restored original start processto find better solution. #208 reopened as well
-      start-device $udid
-
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      #( ${BASEDIR}/zebrunner.sh start $udid & )
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
-    echo "Waiting while services are up&running..."
-    echo
+    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
-    wait
-    echo
-
-    sleep 3
-    status
+    echo "Verify startup status using './zebrunner.sh status'"
+    exit 0
   }
 
   start-device() {
@@ -481,27 +477,25 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     if [ -n "$device" ]; then
-      echo "$DEVICE_NAME ($DEVICE_UDID)"
+      echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
       if [ $? -eq 1 ]; then
-        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!"
+        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
         return 1
       fi
 
-      start-wda $udid > ${DEVICE_LOG} 2>&1
+      start-wda $udid >> ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!"
-        return 1
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+        exit 1
       fi
       start-appium $udid >> ${APPIUM_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
 
-      status-device $udid
-
     else 
-      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
+      echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
     fi
   }
 
@@ -660,7 +654,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [ -n "$physical" ]; then
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
+      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=WebDriverAgentRunner.xctest \
+        --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
     else
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
       #for simulators continue to build WDA
@@ -714,13 +709,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
-      #211: infinite start loop
-      start-device $udid >> ${DEVICE_LOG} 2>&1 &
-
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      #( ${BASEDIR}/zebrunner.sh start $udid & )
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
@@ -746,6 +738,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
       stop-device $udid &
     done < ${devices}
+
+    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
     wait
     echo "MCloud services stopped."
@@ -878,6 +872,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud" > /dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
+        return 0
+      fi
+
+      ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
+      if [ $? -eq 0 ]; then
+        echo "$DEVICE_NAME ($DEVICE_UDID) is starting."
         return 0
       fi
 
