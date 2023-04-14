@@ -128,7 +128,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       read -p "Master host port [$ZBR_MCLOUD_PORT]: " local_port
       if [[ ! -z $local_port ]]; then
         ZBR_MCLOUD_PORT=$local_port
-      fi
+      fi 
 
       confirm "MCloud STF URL: $ZBR_MCLOUD_PROTOCOL://$ZBR_MCLOUD_HOSTNAME:$ZBR_MCLOUD_PORT/stf" "Continue?" "y"
       is_confirmed=$?
@@ -248,6 +248,58 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       is_confirmed=$?
     done
     export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
+
+    validate_email() {
+      local email=$1
+      local regex='^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
+      if [[ $email =~ $regex ]]; then
+          return 0 # email is valid
+      else
+          return 1 # email is invalid
+      fi
+    }
+
+    echo 
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "Admin email [$STF_ADMIN_EMAIL]: " admin_email
+      if [[ ! -z $admin_email ]]; then
+
+        if validate_email $admin_email; then
+          STF_ADMIN_EMAIL=$admin_email
+          
+        else
+          echo_warning "Invalid email address"
+          continue
+        fi
+        
+      fi
+
+      confirm "Admin email: $STF_ADMIN_EMAIL" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export STF_ADMIN_EMAIL=$STF_ADMIN_EMAIL
+
+    echo 
+    local is_confirmed=0
+    while [[ $is_confirmed -eq 0 ]]; do
+      read -p "Admin name [$STF_ADMIN_NAME]: " admin_name
+      if [[ ! -z $admin_name ]]; then
+        STF_ADMIN_NAME=$admin_name
+      fi
+
+      confirm "Admin name: $STF_ADMIN_NAME" "Continue?" "y"
+      is_confirmed=$?
+    done
+    export STF_ADMIN_NAME=$STF_ADMIN_NAME
+
+    touch owner/.env
+    cp owner/.env.owner owner/.env
+
+    replace owner/.env "admin_email" "$STF_ADMIN_EMAIL"
+    replace owner/.env "admin_name" "$STF_ADMIN_NAME"
+
+    mv owner/.env stf/.env
 
     # export all ZBR* variables to save user input
     export_settings
