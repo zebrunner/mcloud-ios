@@ -645,16 +645,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     echo Starting WDA: ${name}, udid: ${udid}, WDA_PORT: ${WDA_PORT}, MJPEG_PORT: ${MJPEG_PORT}
-    scheme=WebDriverAgentRunner
+    schema=WebDriverAgentRunner
 
-    #if [ "$DEVICETYPE" == "tvOS" ]; then
-    #  scheme=WebDriverAgentRunner_tvOS
-    #fi
+    if [ "$DEVICETYPE" == "tvOS" ]; then
+      schema=WebDriverAgentRunner_tvOS
+    fi
 
     if [ -n "$physical" ]; then
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=WebDriverAgentRunner.xctest \
+      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=${schema}.xctest \
         --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
     else
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
