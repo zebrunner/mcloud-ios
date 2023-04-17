@@ -509,6 +509,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
     #echo udid: $udid
 
+    start-session $udid
+
     . ./configs/getDeviceArgs.sh $udid
 
     if [ "${WDA_HOST}" == "" ]; then
@@ -596,7 +598,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
 
     # example of the session startup output
-    #{
+    #
     #  "value" : {
     #    "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73",
     #    "capabilities" : {
