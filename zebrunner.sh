@@ -664,7 +664,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
       export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
 
-      xcrun simctl launch --console --terminate-running-process ${udid} com.facebook.WebDriverAgentRunner.xctrunner &
+      xcrun simctl launch --console --terminate-running-process ${udid} $ZBR_WDA_BUNDLE_ID &
     fi
 
     verifyWDAStartup "${DEVICE_LOG}" ${WDA_WAIT_TIMEOUT}
@@ -778,7 +778,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo udid: $udid
 
     if [ -n "$simulator" ]; then
-      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
+      xcrun simctl terminate $udid $ZBR_WDA_BUNDLE_ID
     else
       ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
