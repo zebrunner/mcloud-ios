@@ -874,7 +874,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud" > /dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
-        return 0
+        return 1
       fi
 
       ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
