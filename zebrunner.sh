@@ -407,9 +407,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
 
-          ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
+          status-device $udid
           if [ $? -eq 0 ]; then
-            echo "do nothing as starting is already in progress for $DEVICE_NAME ($DEVICE_UDID)"
+            echo "do nothing as state is valid (healthy or starting) for $DEVICE_NAME ($DEVICE_UDID)"
             return 0
           fi
 
@@ -423,7 +423,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          ( start-device $udid & )
+          #( start-device $udid & )
+          ( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -456,7 +457,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( start-device $udid & ) 
+      #( start-device $udid & ) 
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
     launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
@@ -549,7 +551,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
-
     # Specify concrete supported v17.1.0 node for STF
     nvm use v17.1.0
 
@@ -712,7 +713,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( start-device $udid & )
+      #( start-device $udid & )
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
@@ -889,12 +891,17 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if curl --max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
       then
         echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
+        return 0
       else
         echo "$DEVICE_NAME ($DEVICE_UDID) is unhealthy!"
+        return 1
       fi
     else
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
+      return 1
     fi
+
+    return 1
 
   }
 
