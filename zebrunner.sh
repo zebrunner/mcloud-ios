@@ -407,9 +407,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
           . ./configs/getDeviceArgs.sh $udid
 
-          ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
+          status-device $udid
           if [ $? -eq 0 ]; then
-            echo "do nothing as starting is already in progress for $DEVICE_NAME ($DEVICE_UDID)"
+            echo "do nothing as state is valid (healthy or starting) for $DEVICE_NAME ($DEVICE_UDID)"
             return 0
           fi
 
@@ -423,7 +423,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          ( start-device $udid & )
+          #( start-device $udid & )
+          ( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -456,7 +457,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( start-device $udid & ) 
+      #( start-device $udid & ) 
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     done < ${devices}
 
     launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
@@ -508,6 +510,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
     #echo udid: $udid
 
+    start-session $udid
+
     . ./configs/getDeviceArgs.sh $udid
 
     if [ "${WDA_HOST}" == "" ]; then
@@ -549,7 +553,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     fi
 
     echo "Starting iSTF ios-device: ${udid} device name : ${name}"
-
     # Specify concrete supported v17.1.0 node for STF
     nvm use v17.1.0
 
@@ -595,7 +598,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
 
     # example of the session startup output
-    #{
+    #
     #  "value" : {
     #    "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73",
     #    "capabilities" : {
@@ -664,7 +667,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
       export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
 
-      xcrun simctl launch --console --terminate-running-process ${udid} com.facebook.WebDriverAgentRunner.xctrunner &
+      xcrun simctl launch --console --terminate-running-process ${udid} ${ZBR_WDA_BUNDLE_ID} &
     fi
 
     verifyWDAStartup "${DEVICE_LOG}" ${WDA_WAIT_TIMEOUT}
@@ -712,7 +715,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
       #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      ( start-device $udid & )
+      #( start-device $udid & )
+      ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
   }
 
@@ -778,7 +782,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #echo udid: $udid
 
     if [ -n "$simulator" ]; then
-      xcrun simctl terminate $udid com.facebook.WebDriverAgentRunner.xctrunner
+      xcrun simctl terminate $udid ${ZBR_WDA_BUNDLE_ID}
     else
       ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
       # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
@@ -872,7 +876,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl list | grep $DEVICE_UDID | grep "com.zebrunner.mcloud" > /dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo "$DEVICE_NAME ($DEVICE_UDID) is stopped."
-        return 0
+        return 1
       fi
 
       ps -ef | grep zebrunner.sh | grep start | grep $udid > /dev/null 2>&1
@@ -889,12 +893,17 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if curl --max-time 10 -Is "http://localhost:$appium_port/wd/hub/status-wda" | head -1 | grep -q '200 OK'
       then
         echo "$DEVICE_NAME ($DEVICE_UDID) is healthy."
+        return 0
       else
         echo "$DEVICE_NAME ($DEVICE_UDID) is unhealthy!"
+        return 1
       fi
     else
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!"
+      return 1
     fi
+
+    return 1
 
   }
 
