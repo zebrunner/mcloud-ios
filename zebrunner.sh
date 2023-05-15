@@ -391,6 +391,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           echo REPLY: $REPLY
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
+          if [[ -z $udid ]]; then
+            // do nothing
+            return 0
+          fi
           . ./configs/getDeviceArgs.sh $udid
 
           status-device $udid
