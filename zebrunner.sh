@@ -442,6 +442,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       if [[ "$udid" = "UDID" ]]; then
         continue
       fi
+      if [[ -z $udid ]]; then
+        continue
+      fi
 
       # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
       # only in this case appium has access to webview content. Otherwise, such issue occur:
