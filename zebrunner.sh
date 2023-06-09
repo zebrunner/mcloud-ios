@@ -437,6 +437,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   start() {
+
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
@@ -478,7 +479,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     . ./configs/getDeviceArgs.sh $udid
 
+    # 239: start() won't restart running state devices
+    if [ -f "$BASEDIR/metaData/$udid.json" ]; then
+      echo "$DEVICE_NAME ($udid) is up and running"
+      exit -1
+    fi 
+
     if [ -n "$device" ]; then
+
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
@@ -1188,7 +1196,7 @@ case "$1" in
         if [ -z $2 ]; then
           start
         else
-         start-device $2
+          start-device $2
         fi
         ;;
     stop)
