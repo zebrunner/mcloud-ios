@@ -1196,7 +1196,7 @@ case "$1" in
         if [ -z $2 ]; then
           start
         else
-          start-device $2
+         start-device $2
         fi
         ;;
     stop)
