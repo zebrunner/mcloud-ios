@@ -480,7 +480,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     . ./configs/getDeviceArgs.sh $udid
 
     # 239: start() won't restart running state devices
-    if [ -f "$BASEDIR/metaData/$udid.json" ]; then
+    pid=$(ps -eaf | grep "$udid" | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }')
+
+    if [[ -n $pid ]]; then
+      # echo $pid
       echo "$DEVICE_NAME ($udid) is up and running"
       exit -1
     fi 
