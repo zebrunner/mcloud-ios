@@ -483,7 +483,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     pid=$(ps -eaf | grep "$udid" | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }')
 
     if [[ -n $pid ]]; then
-      # echo $pid
       echo "$DEVICE_NAME ($udid) is up and running"
       exit -1
     fi 
@@ -506,6 +505,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       fi
       start-appium $udid >> ${APPIUM_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
+
+      # Store device .pid in /tmp
+      ps -eaf | grep "$udid" | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }' > "${BASEDIR}/tmp/${udid}.pid"
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -779,6 +781,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
     sleep 1
     stop-stf $udid >> ${DEVICE_LOG} 2>&1
+
+    # Kill .pid process
+    read pid <${BASEDIR}/tmp/${udid}.pid
+    if [[ -n $pid ]]; then
+      kill $pid 
+    fi
   }
 
 
@@ -881,6 +889,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
 
     . ./configs/getDeviceArgs.sh $udid
+
+    # Verify the .pid process is up and running
+    read pid <${BASEDIR}/tmp/${udid}.pid
+
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$DEVICE_NAME ($DEVICE_UDID) is up and running" 
+    fi
 
     if [ -n "$device" ]; then
       # verify if recovery script is loaded otherwise device services are stopped!
