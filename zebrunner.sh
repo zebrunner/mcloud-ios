@@ -783,9 +783,15 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     stop-stf $udid >> ${DEVICE_LOG} 2>&1
 
     # Kill .pid process
-    read pid <${BASEDIR}/tmp/${udid}.pid
-    if [[ -n $pid ]]; then
-      kill $pid 
+
+    pid_file="${BASEDIR}/tmp/${udid}.pid"
+
+    if [[ -f $pid_file ]]; then
+      read pid <$pid_file
+
+      if kill -0 $pid 2>/dev/null; then
+        kill $pid
+      fi
     fi
   }
 
