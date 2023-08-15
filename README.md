@@ -1,5 +1,7 @@
-Zebrunner Device Farm (iOS agent)
+DECOMMISIONED! Zebrunner Device Farm (iOS agent)
 ==================
+
+## [mcloud-agent](https://github.com/zebrunner/mcloud-agent) should be used to setup MacOS agents too!
 
 Feel free to support the development with a [**donation**](https://www.paypal.com/donate?hosted_button_id=JLQ4U468TWQPS) for the next improvements.
 
