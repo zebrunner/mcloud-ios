@@ -14,6 +14,7 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
   > NVM required to organize automatic switch between nodes
 * Using NVM install node v17.1.0 and make it default `nvm alias default 17`
 * Install Appium v1.22.3, optionally install opencv module to be able to support [find by image](https://zebrunner.github.io/carina/automation/mobile/#how-to-use-find-by-image-strategy) strategy
+  > Important! Only 1.22.3 appium is supported for this setup!
 * Sign WebDriverAgent using your Dev Apple certificate and install WebDriverAgent on each device manually
   * Open in XCode <i>APPIUM_HOME</i>/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj
   * Choose WebDriverAgentRunner and your device(s)
@@ -26,7 +27,8 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
 * Install jq
   `brew install jq`
 * Install cmake to be able to compile jpeg-turbo: https://cmake.org/install
-* Download v1.0.106+ go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/download/v1.0.106/go-ios-mac.zip) and put into `/usr/local/bin`
+* Download v1.0.115+ go ios utility [go-ios-mac.zip](https://github.com/danielpaulus/go-ios/releases/download/v1.0.115/go-ios-mac.zip) and put into `/usr/local/bin`
+  > Make sure to unblock it as it goes from not identified developer
 
 ### Patch appium
 * Clone Zebrunner Appium and patch sources:
@@ -35,15 +37,14 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
   cd appium
   export APPIUM_HOME=/usr/local/lib/node_modules/appium
   cp -R -v ./files/mcloud/* ${APPIUM_HOME}/
+  # Generate symlinks to shell scripts:
+  ln -s -f $HOME/tools/appium/files/concat-video-recordings.sh /opt/
+  ln -s -f $HOME/tools/appium/files/reset-logs.sh /opt/
+  ln -s -f $HOME/tools/appium/files/start-capture-artifacts.sh /opt/
+  ln -s -f $HOME/tools/appium/files/stop-capture-artifacts.sh /opt/
+  ln -s -f $HOME/tools/appium/files/upload-artifacts.sh /opt/
   ```
-* Generate symlinks to shell scripts:
-  ```
-  ln -s $HOME/tools/appium/files/concat-video-recordings.sh /opt/
-  ln -s $HOME/tools/appium/files/reset-logs.sh /opt/
-  ln -s $HOME/tools/appium/files/start-capture-artifacts.sh /opt/
-  ln -s $HOME/tools/appium/files/stop-capture-artifacts.sh /opt/
-  ln -s $HOME/tools/appium/files/upload-artifacts.sh /opt/
-  ```
+  > Make sure to provide absolute path to the files above^^^
 * Install aws cli: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 * Configure aws using your s3 access and secret keys, region etc
   ```
