@@ -38,12 +38,13 @@ Feel free to support the development with a [**donation**](https://www.paypal.co
   export APPIUM_HOME=/usr/local/lib/node_modules/appium
   cp -R -v ./files/mcloud/* ${APPIUM_HOME}/
   # Generate symlinks to shell scripts:
-  ln -s -f ./files/concat-video-recordings.sh /opt/
-  ln -s -f ./files/reset-logs.sh /opt/
-  ln -s -f ./files/start-capture-artifacts.sh /opt/
-  ln -s -f ./files/stop-capture-artifacts.sh /opt/
-  ln -s -f ./files/upload-artifacts.sh /opt/
+  ln -s -f $HOME/tools/appium/files/concat-video-recordings.sh /opt/
+  ln -s -f $HOME/tools/appium/files/reset-logs.sh /opt/
+  ln -s -f $HOME/tools/appium/files/start-capture-artifacts.sh /opt/
+  ln -s -f $HOME/tools/appium/files/stop-capture-artifacts.sh /opt/
+  ln -s -f $HOME/tools/appium/files/upload-artifacts.sh /opt/
   ```
+  > Make sure to provide absolute path to the files above^^^
 * Install aws cli: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
 * Configure aws using your s3 access and secret keys, region etc
   ```
