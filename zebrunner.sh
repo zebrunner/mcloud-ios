@@ -450,16 +450,14 @@ export udid_position=2
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
       echo TODO: replace by xcodebuild
-      #ios runwda --bundleid= --testrunnerbundleid= --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=8100 --env MJPEG_SERVER_PORT=8101 --env UITEST_DISABLE_ANIMATIONS=YES --udid d050bc1212f0671b41b617ee2fd2de463b5f0bba
-      #echo ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=${schema}.xctest \
-      #  --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
+      echo ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=${schema}.xctest \
+        --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
 
+      nohup /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
+        -scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test &
 
-      echo nohup xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-        -scheme $scheme -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test &
-
-      nohup xcodebuild -project ${APPIUM_HOME}/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-	-scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test &
+      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $ZBR_WDA_BUNDLE_ID
+      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $ZBR_WDA_BUNDLE_ID
 
     fi
 
@@ -902,19 +900,6 @@ set_storage_settings() {
   export ZBR_STORAGE_TENANT=$ZBR_STORAGE_TENANT
 }
 
-
-if [ ! -d "$HOME/.nvm" ]; then
-  echo_warning "NVM must be installed as prerequisites!"
-  exit -1
-fi
-
-#load NVM into the bash path
-export NVM_DIR="$HOME/.nvm"
-[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && . "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 case "$1" in
     setup)
