@@ -167,9 +167,7 @@ export udid_position=2
           fi
 
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
-          # remount obligatory developer images automatically on each reboot and even for each reconnect
-          ios image auto --udid=$udid > /dev/null 2>&1
-          # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
+          # TODO: we explicitly do stop because ios listen return historical line for last connected device. in this case we will restart services.
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
 
