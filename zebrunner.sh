@@ -238,8 +238,12 @@ export udid_position=2
       launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     fi
 
+    # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+    ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
 
+    echo $udid
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
+    ls -la $HOME/Library/LaunchAgents
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "udid_value" "$udid"
@@ -303,8 +307,7 @@ export udid_position=2
 
   listen() {
     # do analysis of ios listen output and organize automatic start/stop for connected/disconnected device
-    echo "COMMENTED!"
-    #ios listen | on-usb-update
+    ios listen | on-usb-update
   }
 
   start() {
@@ -567,18 +570,21 @@ export udid_position=2
     #echo udid: $udid
 
     if [ ! -n "$simulator" ]; then
-      echo TODO: kill wda processes
-      echo ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
-      # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
-      #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
-      export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
-      #echo "ios ruwda pid: $pids"
-      kill_processes $pids
+      echo TODO: kill wda processes based on below example
+      #xcrun devicectl device info processes --device 00008101-000308620121001E | grep WebDriver
+      #xcrun devicectl device process signal --pid 2542 --signal SIGTERM --device 00008101-000308620121001E
+
+
+      #echo ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
+      #export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
+      ##echo "ios ruwda pid: $pids"
+      #kill_processes $pids
 
       ## kill ios forward proxy requests
       #export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
       ##echo "ios forward pid: $pids"
       #kill_processes $pids
+
     fi
 
     . ./configs/getDeviceArgs.sh $udid
