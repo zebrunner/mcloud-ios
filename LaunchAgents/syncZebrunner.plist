@@ -13,7 +13,7 @@
 		<key>ProgramArguments</key>
 		<array>
                 	<string>./zebrunner.sh</string>
-		        <string>recover</string>
+		        <string>start</string>
                         <string>udid_value</string>
         	</array>
 		<key>WorkingDirectory</key>
@@ -22,10 +22,10 @@
 		<string>user_value</string>
 
                 <key>KeepAlive</key>
-                <false/>
+                <true/>
 
                 <key>RunAtLoad</key>
-                <false/>
+                <true/>
 
 		<key>AbandonProcessGroup</key>
 		<true/>
