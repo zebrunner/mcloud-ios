@@ -25,20 +25,8 @@ export udid_position=2
 
 export SIMULATORS=${metaDataFolder}/simulators.txt
 
-  print_banner() {
-  echo "
-███████╗███████╗██████╗ ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗      ██████╗███████╗
-╚══███╔╝██╔════╝██╔══██╗██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗    ██╔════╝██╔════╝
-  ███╔╝ █████╗  ██████╔╝██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝    ██║     █████╗
- ███╔╝  ██╔══╝  ██╔══██╗██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗    ██║     ██╔══╝
-███████╗███████╗██████╔╝██║  ██║╚██████╔╝██║ ╚████║██║ ╚████║███████╗██║  ██║    ╚██████╗███████╗
-╚══════╝╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝     ╚═════╝╚══════╝
-"
-
-  }
-
+  
   setup() {
-    print_banner
 
     # software prerequisites check like appium, xcode etc
 
@@ -293,8 +281,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit
     fi
 
-    print_banner
-
     stop
 
     while read -r line
@@ -338,15 +324,14 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     # mount developer images, unistall existing wda, install fresh one. start, test and stop
     # for simulators inform about prerequisites to build and install wda manually
 
-    if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
-      echo
-      if [ -n "$device" ]; then
-        if [ -n "$physical" ]; then
-          echo "$DEVICE_NAME ($DEVICE_UDID)"
+    if [ -n "$device" ]; then
+      if [ -n "$physical" ]; then
+        echo "$DEVICE_NAME ($DEVICE_UDID)"
 
-          # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
-          ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+        # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+        ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
 
+        if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
           ios image auto --udid=$udid
           stop-wda $udid
           echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
@@ -361,12 +346,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
             echo
             echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
           fi
-        else
-          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
         fi
       else
-        echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
+        echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
       fi
+    else
+      echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
     fi
 
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
@@ -405,6 +390,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           echo REPLY: $REPLY
           # parse udid and start services
           udid=`echo $REPLY | jq -r ".Properties.SerialNumber"`
+          if [[ -z $udid ]]; then
+            // do nothing
+            return 0
+          fi
           . ./configs/getDeviceArgs.sh $udid
 
           status-device $udid
@@ -451,6 +440,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       udid=$(echo $udid)
       #echo "udid: $udid"
       if [[ "$udid" = "UDID" ]]; then
+        continue
+      fi
+      if [[ -z $udid ]]; then
         continue
       fi
 
@@ -573,9 +565,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
       --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
       --boot-complete-timeout 60000 --mute-master never \
-      --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
+      --connect-app-dealer tcp://${TCP_STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${TCP_STF_MASTER_HOST}:7260 \
       --wda-host ${WDA_HOST} --wda-port ${WDA_PORT} \
-      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup &
+      --connect-sub tcp://${TCP_STF_MASTER_HOST}:7250 --connect-push tcp://${TCP_STF_MASTER_HOST}:7270 --no-cleanup &
 
   }
 
