@@ -437,6 +437,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   start() {
+
     if [ ! -f backup/settings.env ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
@@ -478,7 +479,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     . ./configs/getDeviceArgs.sh $udid
 
+    # 239: start() won't restart running state devices
+    pid=$(ps -eaf | grep "$udid" | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }')
+
+    if [[ -n $pid ]]; then
+      echo "$DEVICE_NAME ($udid) is up and running"
+      exit -1
+    fi 
+
     if [ -n "$device" ]; then
+
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
@@ -495,6 +505,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       fi
       start-appium $udid >> ${APPIUM_LOG} 2>&1
       start-stf $udid >> ${DEVICE_LOG} 2>&1
+
+      # Store device .pid in /tmp
+      ps -eaf | grep "$udid" | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }' > "${BASEDIR}/tmp/${udid}.pid"
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -768,6 +781,18 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
     sleep 1
     stop-stf $udid >> ${DEVICE_LOG} 2>&1
+
+    # Kill .pid process
+
+    pid_file="${BASEDIR}/tmp/${udid}.pid"
+
+    if [[ -f $pid_file ]]; then
+      read pid <$pid_file
+
+      if kill -0 $pid 2>/dev/null; then
+        kill $pid
+      fi
+    fi
   }
 
 
@@ -870,6 +895,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
 
     . ./configs/getDeviceArgs.sh $udid
+
+    # Verify the .pid process is up and running
+    read pid <${BASEDIR}/tmp/${udid}.pid
+
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "$DEVICE_NAME ($DEVICE_UDID) is up and running" 
+    fi
 
     if [ -n "$device" ]; then
       # verify if recovery script is loaded otherwise device services are stopped!
