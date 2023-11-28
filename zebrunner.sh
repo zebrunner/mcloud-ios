@@ -3,12 +3,12 @@
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
 
-export CHECK_APP_SIZE_OPTIONALLY=true
-
 source .env
 
 export devices=${BASEDIR}/devices.txt
 export metaDataFolder=${BASEDIR}/metaData
+
+export SIMULATORS=${metaDataFolder}/simulators.txt
 
 if [ ! -d "${BASEDIR}/metaData" ]; then
     mkdir -p "${BASEDIR}/metaData"
@@ -70,8 +70,18 @@ export udid_position=2
       setup-device $udid
     done < ${devices}
 
+    syncSimulators
+
     echo_warning "Your services needs to be restarted using './zebrunner.sh restart'!"
 
+  }
+
+  syncSimulators() {
+    echo
+    echo `date +"%T"` Sync Simulators script started
+    xcrun simctl list --json > ${SIMULATORS}
+    echo `date +"%T"` Sync Simulators script finished
+    echo
   }
 
   shutdown() {
@@ -118,8 +128,10 @@ export udid_position=2
       launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     fi
 
-    # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
-    ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+    if [ -n "$physical" ]; then
+      # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+      ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
+    fi
 
     echo $udid
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
@@ -271,16 +283,25 @@ export udid_position=2
     if [ -n "$physical" ]; then
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      echo TODO: replace by xcodebuild
-      echo ios runwda --bundleid=$device_wda_bundle_id --testrunnerbundleid=$device_wda_bundle_id --xctestconfig=${schema}.xctest \
+      #echo TODO: replace by xcodebuild
+      #echo ios runwda --bundleid=$device_wda_bundle_id --testrunnerbundleid=$device_wda_bundle_id --xctestconfig=${schema}.xctest \
         --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
 
       /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${device_wda_home}/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
         -scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test
 
-      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
-      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
+      #echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
+      #echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
+    else
+      #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
+      #for simulators continue to build WDA
 
+      export SIMCTL_CHILD_USE_PORT=$WDA_PORT
+      export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
+      export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
+
+      echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
+      xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
     fi
 
     echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
