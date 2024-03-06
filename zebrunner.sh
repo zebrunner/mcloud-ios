@@ -174,8 +174,8 @@ export udid_position=2
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          #( start-device $udid & )
-          ( ${BASEDIR}/zebrunner.sh start $udid & )
+          start-device $udid &
+          #( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -200,19 +200,20 @@ export udid_position=2
       udid=`echo $line | cut -d '|' -f ${udid_position}`
       #to trim spaces around. Do not remove!
       udid=$(echo $udid)
-      #echo "udid: $udid"
+      echo "udid: $udid"
       if [[ "$udid" = "UDID" ]]; then
         continue
       fi
 
-      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
-      # only in this case appium has access to webview content. Otherwise, such issue occur:
-      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      #( start-device $udid & ) 
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      launchctl list | grep com.zebrunner.mcloud.$udid   #> /dev/null 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+        return 1
+      fi
     done < ${devices}
 
-    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
+    #launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
     echo "Verify startup status using './zebrunner.sh status'"
     exit 0
@@ -231,14 +232,6 @@ export udid_position=2
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
-      #load recovery service script
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        return 1
-      fi
-
       start-wda $udid >> ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
