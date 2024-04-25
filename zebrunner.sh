@@ -5,13 +5,7 @@ cd ${BASEDIR}
 
 export CHECK_APP_SIZE_OPTIONALLY=true
 
-if [ -f backup/settings.env ]; then
-  source backup/settings.env
-fi
-
-if [ -f .env ]; then
-  source .env
-fi
+source .env
 
 export devices=${BASEDIR}/devices.txt
 export metaDataFolder=${BASEDIR}/metaData
@@ -23,17 +17,8 @@ fi
 # udid position in devices.txt to be able to read by sync scripts
 export udid_position=2
 
-export SIMULATORS=${metaDataFolder}/simulators.txt
-
   print_banner() {
-  echo "
-███████╗███████╗██████╗ ██████╗ ██╗   ██╗███╗   ██╗███╗   ██╗███████╗██████╗      ██████╗███████╗
-╚══███╔╝██╔════╝██╔══██╗██╔══██╗██║   ██║████╗  ██║████╗  ██║██╔════╝██╔══██╗    ██╔════╝██╔════╝
-  ███╔╝ █████╗  ██████╔╝██████╔╝██║   ██║██╔██╗ ██║██╔██╗ ██║█████╗  ██████╔╝    ██║     █████╗
- ███╔╝  ██╔══╝  ██╔══██╗██╔══██╗██║   ██║██║╚██╗██║██║╚██╗██║██╔══╝  ██╔══██╗    ██║     ██╔══╝
-███████╗███████╗██████╔╝██║  ██║╚██████╔╝██║ ╚████║██║ ╚████║███████╗██║  ██║    ╚██████╗███████╗
-╚══════╝╚══════╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚══════╝╚═╝  ╚═╝     ╚═════╝╚══════╝
-"
+  echo "Zebrunner CE"
 
   }
 
@@ -41,18 +26,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     print_banner
 
     # software prerequisites check like appium, xcode etc
-
-    which git > /dev/null
-    if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as git is missed!"
-      exit -1
-    fi
-
-    which ffmpeg > /dev/null
-    if [ ! $? -eq 0 ]; then
-      echo_warning "Unable to proceed as ffmpeg is missed!"
-      exit -1
-    fi
 
     which ios > /dev/null
     if [ ! $? -eq 0 ]; then
@@ -66,31 +39,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit -1
     fi
 
-    which cmake > /dev/null
-    if [ ! $? -eq 0 ]; then
-      # soft dependency as appium might not be registered in PATH
-      echo_warning "cmake is not detected! It is recommended to install for compatibility!"
-    fi
-
-    which appium > /dev/null
-    if [ ! $? -eq 0 ]; then
-      # soft dependency as appium might not be registered in PATH
-      echo_warning "Appium is not detected! Interrupt setup if you don't have it installed!"
-    fi
-
-    echo ""
-    echo_warning "Make sure to register your devices and simulators in devices.txt!"
-
-    echo
-
-    # load default interactive installer settings
-    source backup/settings.env.original
-
-    # load ./backup/settings.env if exist to declare ZBR* vars from previous run!
-    if [[ -f backup/settings.env ]]; then
-      source backup/settings.env
-    fi
-
     export ZBR_MCLOUD_IOS_VERSION=2.4.5
 
     # unload Devices Manager script if any to avoid restarts during setup
@@ -98,164 +46,9 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
     fi
 
-    # Setup MCloud master host settings: protocol, hostname and port
-    echo "MCloud SmartTestFarm Settings"
-    local is_confirmed=0
-
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "Master host protocol [$ZBR_MCLOUD_PROTOCOL]: " local_protocol
-      if [[ ! -z $local_protocol ]]; then
-        ZBR_MCLOUD_PROTOCOL=$local_protocol
-      fi
-
-      read -p "Master host address [$ZBR_MCLOUD_HOSTNAME]: " local_hostname
-      if [[ ! -z $local_hostname ]]; then
-        ZBR_MCLOUD_HOSTNAME=$local_hostname
-      fi
-
-      read -p "Master host port [$ZBR_MCLOUD_PORT]: " local_port
-      if [[ ! -z $local_port ]]; then
-        ZBR_MCLOUD_PORT=$local_port
-      fi
-
-      confirm "MCloud STF URL: $ZBR_MCLOUD_PROTOCOL://$ZBR_MCLOUD_HOSTNAME:$ZBR_MCLOUD_PORT/stf" "Continue?" "y"
-      is_confirmed=$?
-    done
-
-    export ZBR_MCLOUD_PROTOCOL=$ZBR_MCLOUD_PROTOCOL
-    export ZBR_MCLOUD_HOSTNAME=$ZBR_MCLOUD_HOSTNAME
-    export ZBR_MCLOUD_PORT=$ZBR_MCLOUD_PORT
-
     echo 
-
-    echo "MCloud iOS Agent Settings"
-    local is_confirmed=0
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "Current node host address [$ZBR_MCLOUD_NODE_HOSTNAME]: " local_hostname
-      if [[ ! -z $local_hostname ]]; then
-        ZBR_MCLOUD_NODE_HOSTNAME=$local_hostname
-      fi
-
-      read -p "Current node name [$ZBR_MCLOUD_NODE_NAME]: " local_name
-      if [[ ! -z $local_name ]]; then
-        ZBR_MCLOUD_NODE_NAME=$local_name
-      fi
-      confirm "Node host address: $ZBR_MCLOUD_NODE_HOSTNAME; Node name: $ZBR_MCLOUD_NODE_NAME" "Continue?" "y"
-      is_confirmed=$?
-    done
-    export ZBR_MCLOUD_NODE_HOSTNAME=$ZBR_MCLOUD_NODE_HOSTNAME
-    export ZBR_MCLOUD_NODE_NAME=$ZBR_MCLOUD_NODE_NAME
-
-    echo 
-
-    local is_confirmed=0
-    while [[ $is_confirmed -eq 0 ]]; do
-      read -p "Appium path [$ZBR_MCLOUD_APPIUM_PATH]: " local_value
-      if [[ ! -z $local_value ]]; then
-        ZBR_MCLOUD_APPIUM_PATH=$local_value
-      fi
-
-      if [[ ! -r $ZBR_MCLOUD_APPIUM_PATH/lib/main.js ]]; then
-        echo_warning "Appum path is invalid as $ZBR_MCLOUD_APPIUM_PATH/lib/main.js is not found!"
-        continue
-      fi
-
-      confirm "Appium path: $ZBR_MCLOUD_APPIUM_PATH" "Continue?" "y"
-      is_confirmed=$?
-    done
-    export ZBR_MCLOUD_APPIUM_PATH=$ZBR_MCLOUD_APPIUM_PATH
-
-    echo
-    confirm "S3 storage for storing video and log artifacts." "Enable?" "$ZBR_MCLOUD_S3_ENABLE"
-    if [ $? -eq 1 ]; then
-      export ZBR_MCLOUD_S3_ENABLE="y"
-      set_storage_settings
-    else
-      export ZBR_MCLOUD_S3_ENABLE="n"
-    fi
-
-    cp .env.original .env
-    replace .env "stf_master_host_value" "$ZBR_MCLOUD_HOSTNAME"
-    replace .env "STF_MASTER_PORT=80" "STF_MASTER_PORT=$ZBR_MCLOUD_PORT"
-    replace .env "node_host_value" "$ZBR_MCLOUD_NODE_HOSTNAME"
-    replace .env "node_name_value" "$ZBR_MCLOUD_NODE_NAME"
-    replace .env "appium_path_value" "$ZBR_MCLOUD_APPIUM_PATH"
-
-    if [ "$ZBR_MCLOUD_PROTOCOL" == "https" ]; then
-      replace .env "WEBSOCKET_PROTOCOL=ws" "WEBSOCKET_PROTOCOL=wss"
-      replace .env "WEB_PROTOCOL=http" "WEB_PROTOCOL=https"
-    fi
-
-    echo
-    echo "Pull STF updates:"
-    stf_branch=2.5
-    if [ ! -d stf ]; then
-      git clone https://github.com/zebrunner/stf.git
-      cd stf
-      git -c advice.detachedHead=false checkout ${stf_branch}
-    else
-      cd stf
-      git pull origin ${stf_branch}
-    fi
-
-    echo
-    confirm "Rebuild SmartTestFarm sources?" "Rebuild?" "$ZBR_MCLOUD_STF_BUILD"
-    if [ $? -eq 1 ]; then
-      export ZBR_MCLOUD_STF_BUILD="y"
-      echo "Building iSTF component..."
-      nvm use v17.1.0
-      npm install
-      npm link --force
-    else
-      export ZBR_MCLOUD_STF_BUILD="n"
-    fi
 
     cd "${BASEDIR}"
-
-    syncSimulators
-
-    confirm "Uninstall and install WebDriverAgent application?\nNote: required only first time or if ipa was updated." "Reinstall?" "$ZBR_MCLOUD_REINSTALL_WDA"
-    if [ $? -eq 1 ]; then
-      export ZBR_MCLOUD_REINSTALL_WDA="y"
-    else
-      export ZBR_MCLOUD_REINSTALL_WDA="n"
-    fi
-
-    if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
-
-      local is_confirmed=0
-      while [[ $is_confirmed -eq 0 ]]; do
-        read -p "WebDriverAgent.ipa path [$ZBR_MCLOUD_WDA_PATH]: " local_value
-        if [[ ! -z $local_value ]]; then
-          ZBR_MCLOUD_WDA_PATH=$local_value
-        fi
-
-        if [[ ! -r $ZBR_MCLOUD_WDA_PATH ]]; then
-          echo_warning "Unable to find WebDriverAgent.ipa using provided path: $ZBR_MCLOUD_WDA_PATH"
-          continue
-        fi
-
-        confirm "WebDriverAgent.ipa: $ZBR_MCLOUD_WDA_PATH" "Continue?" "y"
-        is_confirmed=$?
-      done
-      export ZBR_MCLOUD_WDA_PATH=$ZBR_MCLOUD_WDA_PATH
-
-      echo
-      local is_confirmed=0
-      while [[ $is_confirmed -eq 0 ]]; do
-        read -p "WebDriverAgent bundle id: [$ZBR_WDA_BUNDLE_ID]: " local_value
-        if [[ ! -z $local_value ]]; then
-          ZBR_WDA_BUNDLE_ID=$local_value
-        fi
-
-        confirm "WebDriverAgent bundle id: $ZBR_WDA_BUNDLE_ID" "Continue?" "y"
-        is_confirmed=$?
-      done
-      export ZBR_WDA_BUNDLE_ID=$ZBR_WDA_BUNDLE_ID
-    fi
-
-    # export all ZBR* variables to save user input
-    export_settings
 
     # register devices manager to manage attach/reboot actions
     cp LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
@@ -282,11 +75,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   shutdown() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "MCloud iOS agent is already erased!"
-      exit -1
-    fi
-
     echo_warning "Shutdown will erase all settings and data for \"${BASEDIR}\"!"
     confirm "" "      Do you want to continue?" "n"
     if [[ $? -eq 0 ]]; then
@@ -313,15 +101,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     done < ${devices}
 
 
+    rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
     # remove configuration files and LaunchAgents plist(s)
     git checkout -- devices.txt
-    rm .env
-    rm backup/settings.env
 
-    echo "Removing installed STF and devices metadata..."
-    rm -rf stf
-    rm -f ./metaData/*.env
-    rm -f ./metaData/*.json
   }
 
   setup-device() {
@@ -334,41 +118,10 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     fi
 
+    # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
+    ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
 
-    # mount developer images, unistall existing wda, install fresh one. start, test and stop
-    # for simulators inform about prerequisites to build and install wda manually
-
-    if [ "$ZBR_MCLOUD_REINSTALL_WDA" == "y" ]; then
-      echo
-      if [ -n "$device" ]; then
-        if [ -n "$physical" ]; then
-          echo "$DEVICE_NAME ($DEVICE_UDID)"
-
-          # save device info json into the metadata for detecting device class type from file (#171 move iOS device type detection onto the setup level)
-          ios info --udid=$udid > ${BASEDIR}/metaData/device-$udid.json
-
-          ios image auto --udid=$udid
-          stop-wda $udid
-          echo ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
-          ios uninstall $ZBR_WDA_BUNDLE_ID --udid=$udid
-          ios install --path=$ZBR_MCLOUD_WDA_PATH --udid=$udid
-
-          start-wda $udid > ${DEVICE_LOG} 2>&1
-          if [ $? -eq 1 ]; then
-            echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is not started! Review ""${DEVICE_LOG}"" for details."
-          else
-            stop-wda $udid > ${DEVICE_LOG} 2>&1
-            echo
-            echo "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent is OK."
-          fi
-        else
-          echo_warning "$DEVICE_NAME ($DEVICE_UDID): WebDriverAgent on simulator should be installed manually via XCode!"
-        fi
-      else
-        echo_warning "$DEVICE_NAME ($DEVICE_UDID) is disconnected now! Connect and repeat setup."
-      fi
-    fi
-
+    echo $udid
     cp LaunchAgents/syncZebrunner.plist $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "working_dir_value" "${BASEDIR}"
     replace $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist "user_value" "$USER"
@@ -414,17 +167,15 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
           fi
 
           echo "$DEVICE_NAME ($DEVICE_UDID): Start services for attached device."
-          # remount obligatory developer images automatically on each reboot and even for each reconnect
-          ios image auto --udid=$udid > /dev/null 2>&1
-          # TODO: we explicitly do stop because ios listen return historycal line for last connected device. in this case we will restart services.
+          # TODO: we explicitly do stop because ios listen return historical line for last connected device. in this case we will restart services.
           # in future let's try to operate with real-time messages and do only start! As variant do status in advance and skip if already healthy.
           stop-device $udid
 
           # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
           # only in this case appium has access to webview content. Otherwise, such issue occur:
           #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-          #( start-device $udid & )
-          ( ${BASEDIR}/zebrunner.sh start $udid & )
+          start-device $udid &
+          #( ${BASEDIR}/zebrunner.sh start $udid & )
         fi
 
         read
@@ -437,7 +188,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   start() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -449,26 +200,27 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       udid=`echo $line | cut -d '|' -f ${udid_position}`
       #to trim spaces around. Do not remove!
       udid=$(echo $udid)
-      #echo "udid: $udid"
+      echo "udid: $udid"
       if [[ "$udid" = "UDID" ]]; then
         continue
       fi
 
-      # #208: start processes not as a child of existing one: https://stackoverflow.com/questions/20338162/how-can-i-launch-a-new-process-that-is-not-a-child-of-the-original-process
-      # only in this case appium has access to webview content. Otherwise, such issue occur:
-      #     "An unknown server-side error occurred while processing the command. Original error: Could not navigate to webview! Err: Failed to receive any data within the timeout: 5000"
-      #( start-device $udid & ) 
-      ( ${BASEDIR}/zebrunner.sh start $udid & )
+      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      launchctl list | grep com.zebrunner.mcloud.$udid   #> /dev/null 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+        return 1
+      fi
     done < ${devices}
 
-    launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
+    #launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
     echo "Verify startup status using './zebrunner.sh status'"
     exit 0
   }
 
   start-device() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -480,162 +232,17 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
-      #load recovery service script
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        return 1
-      fi
-
       start-wda $udid >> ${DEVICE_LOG} 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
         exit 1
       fi
-      start-appium $udid >> ${APPIUM_LOG} 2>&1
-      start-stf $udid >> ${DEVICE_LOG} 2>&1
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
     fi
   }
 
-
-  start-appium() {
-    udid=$1
-    if [ "$udid" == "" ]; then
-      echo_warning "Unable to start Appium without device udid!"
-      return 0
-    fi
-    #echo udid: $udid
-
-    start-session $udid
-
-    . ./configs/getDeviceArgs.sh $udid
-
-    if [ "${WDA_HOST}" == "" ]; then
-      echo_warning "Unable to start Appium for '${name}' as Device IP not detected!"
-      exit -1
-    fi
-
-    echo "Starting appium: ${udid} - device name : ${name}"
-
-    ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
-
-    newWDA=false
-
-    export BUCKET=$ZBR_STORAGE_BUCKET
-    export TENANT=$ZBR_STORAGE_TENANT
-    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
-    export APPIUM_APP_WAITING_TIMEOUT=600
-
-    nohup node ${APPIUM_HOME}/build/lib/main.js -p ${appium_port} --log-no-colors --log-timestamp --device-name "${name}" --udid $udid \
-      --session-override \
-      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
-      --default-capabilities \
-     '{"mjpegServerPort": '${MJPEG_PORT}', "webkitDebugProxyPort": '${iwdp_port}', "clearSystemFiles": "false", "webDriverAgentUrl":"'http://${WDA_HOST}:${WDA_PORT}'", "preventWDAAttachments": "true", "simpleIsVisibleCheck": "true", "wdaLocalPort": "'$WDA_PORT'", "usePrebuiltWDA": "true", "useNewWDA": "'$newWDA'", "platformVersion": "'$PLATFORM_VERSION'", "automationName":"'${AUTOMATION_NAME}'", "deviceName":"'$name'" }' \
-      --nodeconfig ./metaData/$udid.json &
-  }
-
-  start-stf() {
-    udid=$1
-    if [ "$udid" == "" ]; then
-      echo_warning "Unable to start STF without device udid!"
-      return 0
-    fi
-    #echo udid: $udid
-    . configs/getDeviceArgs.sh $udid
-
-    if [ "${WDA_HOST}" == "" ]; then
-      echo "Unable to start STF for '${name}' as it's ip address not detected!"
-      exit -1
-    fi
-
-    echo "Starting iSTF ios-device: ${udid} device name : ${name}"
-    # Specify concrete supported v17.1.0 node for STF
-    nvm use v17.1.0
-
-    STF_BIN=`which stf`
-    #echo STF_BIN: $STF_BIN
-
-    STF_CLI=`echo "${STF_BIN//bin\/stf/lib/node_modules/@devicefarmer/stf/lib/cli}"`
-    #echo STF_CLI: $STF_CLI
-
-    export ZMQ_TCP_KEEPALIVE=1
-    export ZMQ_TCP_KEEPALIVE_IDLE=600
-
-    nohup node $STF_CLI ios-device --serial ${udid} \
-      --device-name ${name} \
-      --device-type ${DEVICETYPE} \
-      --provider ${STF_NODE_NAME} --host ${STF_NODE_HOST} \
-      --screen-port ${stf_screen_port} --connect-port ${MJPEG_PORT} --public-ip ${STF_MASTER_HOST} --group-timeout 3600 \
-      --storage-url ${WEB_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/ --screen-jpeg-quality 30 --screen-ping-interval 30000 \
-      --screen-ws-url-pattern ${WEBSOCKET_PROTOCOL}://${STF_MASTER_HOST}:${STF_MASTER_PORT}/d/${STF_NODE_HOST}/${udid}/${stf_screen_port}/ \
-      --boot-complete-timeout 60000 --mute-master never \
-      --connect-app-dealer tcp://${STF_MASTER_HOST}:7160 --connect-dev-dealer tcp://${STF_MASTER_HOST}:7260 \
-      --wda-host ${WDA_HOST} --wda-port ${WDA_PORT} \
-      --connect-sub tcp://${STF_MASTER_HOST}:7250 --connect-push tcp://${STF_MASTER_HOST}:7270 --no-cleanup &
-
-  }
-
-  start-session() {
-    # start WDA session correctly generating obligatory snapshot for default 'com.apple.springboard' application.
-    udid=$1
-
-    if [[ ! -f ${WDA_ENV} ]]; then
-      echo "Unable to start 1st session as WDA is not started yet!"
-      return 0
-    fi
-
-    echo "Starting 1st WDA session for $DEVICE_NAME udid: $DEVICE_UDID..."
-    . ./configs/getDeviceArgs.sh $udid
-
-    echo "ip: ${WDA_HOST}; port: ${WDA_PORT}"
-
-    # start new WDA session with default 60 sec snapshot timeout
-    sessionFile=${metaDataFolder}/tmp_${udid}.txt
-    curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}' > ${sessionFile}
-
-    # example of the session startup output
-    #
-    #  "value" : {
-    #    "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73",
-    #    "capabilities" : {
-    #      "device" : "iphone",
-    #      "browserName" : " ",
-    #      "sdkVersion" : "15.2",
-    #      "CFBundleIdentifier" : "com.apple.springboard"
-    #    }
-    #  },
-    #  "sessionId" : "B281FDBB-74FA-4DAC-86EC-CD77AD3EAD73"
-    #}
-
-    cat ${sessionFile}
-
-    export bundleId=$(cat ${sessionFile} | jq -r ".value.capabilities.CFBundleIdentifier")
-    echo bundleId: $bundleId
-
-    export sessionId=$(cat ${sessionFile} | jq -r ".sessionId")
-    echo sessionId: $sessionId
-
-    export PLATFORM_VERSION=$(cat ${sessionFile} | jq -r ".value.capabilities.sdkVersion")
-    echo PLATFORM_VERSION: $PLATFORM_VERSION
-
-    expectedAppId=com.apple.springboard
-    if [[ "$DEVICETYPE" == "tvOS" ]]; then
-      expectedAppId=com.apple.PineBoard
-    fi
-
-    if [[ "$bundleId" != "$expectedAppId" ]]; then
-      echo  "Activating $expectedAppId app forcibly..."
-      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session/$sessionId/wda/apps/launch" --header 'Content-Type: application/json' --data-raw '{"bundleId": "${expectedAppId}"}'
-      sleep 1
-      curl --silent --location --request POST "http://${WDA_HOST}:${WDA_PORT}/session" --header 'Content-Type: application/json' --data-raw '{"capabilities": {}}'
-    fi
-    rm -f ${sessionFile}
-
-  }
 
   start-wda() {
     udid=$1
@@ -657,31 +264,16 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     if [ -n "$physical" ]; then
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      ios runwda --bundleid=$ZBR_WDA_BUNDLE_ID --testrunnerbundleid=$ZBR_WDA_BUNDLE_ID --xctestconfig=${schema}.xctest \
+      echo TODO: replace by xcodebuild
+      echo ios runwda --bundleid=$device_wda_bundle_id --testrunnerbundleid=$device_wda_bundle_id --xctestconfig=${schema}.xctest \
         --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
-    else
-      #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
-      #for simulators continue to build WDA
 
-      export SIMCTL_CHILD_USE_PORT=$WDA_PORT
-      export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
-      export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
+      /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${device_wda_home}/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
+        -scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test
 
-      xcrun simctl launch --console --terminate-running-process ${udid} ${ZBR_WDA_BUNDLE_ID} &
-    fi
+      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
+      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
 
-    verifyWDAStartup "${DEVICE_LOG}" ${WDA_WAIT_TIMEOUT}
-    if [[ ! $? = 0 ]]; then
-      echo "WDA is not started successfully!"
-      rm -fv "${WDA_ENV}"
-      stop-wda $udid
-      return 1
-    fi
-
-    if [ -n "$physical" ]; then
-      # #148: ios: reuse proxy for redirecting wda requests through appium container
-      ios forward $WDA_PORT $WDA_PORT --udid=$udid > /dev/null 2>&1 &
-      ios forward $MJPEG_PORT $MJPEG_PORT --udid=$udid > /dev/null 2>&1 &
     fi
 
     echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
@@ -708,7 +300,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     else
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Recover services for $DEVICE_NAME ($DEVICE_UDID)"
       #obligatory reset logs to analyze wda startup correctly
-      stop-stf $udid > ${DEVICE_LOG} 2>&1 &
       stop-wda $udid >> ${DEVICE_LOG} 2>&1 &
       sleep 1
 
@@ -721,7 +312,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   stop() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -751,7 +342,7 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   stop-device() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -762,17 +353,12 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
     echo "$DEVICE_NAME ($DEVICE_UDID)"
     launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-    stop-appium $udid >> ${APPIUM_LOG} 2>&1
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
-    # wda should be stopped before stf to mark device disconnected asap
-    #TODO: improve to make sure state in stf is Disconnected. Only after that kill this service!
-    sleep 1
-    stop-stf $udid >> ${DEVICE_LOG} 2>&1
   }
 
 
   stop-wda() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -781,20 +367,22 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
     udid=$1
     #echo udid: $udid
 
-    if [ -n "$simulator" ]; then
-      xcrun simctl terminate $udid ${ZBR_WDA_BUNDLE_ID}
-    else
-      ios kill $ZBR_WDA_BUNDLE_ID --udid=$udid
-      # ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner.xctest --env USE_PORT=<WDA_PORT
-      #   --env MJPEG_SERVER_PORT=<MJPEG_PORT> --env UITEST_DISABLE_ANIMATIONS=YES --udid <udid>
-      export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
-      #echo "ios ruwda pid: $pids"
-      kill_processes $pids
+    if [ ! -n "$simulator" ]; then
+      echo TODO: kill wda processes based on below example
+      #xcrun devicectl device info processes --device 00008101-000308620121001E | grep WebDriver
+      #xcrun devicectl device process signal --pid 2542 --signal SIGTERM --device 00008101-000308620121001E
 
-      # kill ios forward proxy requests
-      export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
-      #echo "ios forward pid: $pids"
-      kill_processes $pids
+
+      #echo ios kill $WDA_BUNDLE_ID --udid=$udid
+      #export pids=`ps -eaf | grep ${udid} | grep ios | grep 'runwda' | grep $WDA_PORT | grep -v grep | awk '{ print $2 }'`
+      ##echo "ios ruwda pid: $pids"
+      #kill_processes $pids
+
+      ## kill ios forward proxy requests
+      #export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
+      ##echo "ios forward pid: $pids"
+      #kill_processes $pids
+
     fi
 
     . ./configs/getDeviceArgs.sh $udid
@@ -802,48 +390,8 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
 
   }
 
-  stop-stf() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
-      echo_telegram
-      exit -1
-    fi
-
-    udid=$1
-    #echo udid: $udid
-    if [ "$udid" != "" ]; then
-      export pids=`ps -eaf | grep ${udid} | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }'`
-    else
-      export pids=`ps -eaf | grep 'ios-device' | grep 'stf' | grep -v grep | grep -v stop-stf | awk '{ print $2 }'`
-    fi
-    #echo pids: $pids
-
-    kill_processes $pids
-  }
-
-  stop-appium() {
-    if [ ! -f backup/settings.env ]; then
-      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
-      echo_telegram
-      exit -1
-    fi
-
-    udid=$1
-    #echo udid: $udid
-    if [ "$udid" != "" ]; then
-      export pids=`ps -eaf | grep ${udid} | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
-      rm -fv ${metaDataFolder}/${udid}.json
-    else 
-      export pids=`ps -eaf | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
-      rm -fv ${metaDataFolder}/*.json
-    fi
-    #echo pids: $pids
-
-    kill_processes $pids
-  }
-
   status() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
@@ -908,26 +456,21 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   backup() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
     fi
 
     echo "Starting Devices Farm iOS agent backup..."
-    cp .env backup/.env
-    cp backup/settings.env backup/settings.env.bak
     cp devices.txt backup/devices.txt
-    cp ${SIMULATORS} ${SIMULATORS}.bak
-
-    cp -R stf stf.bak
-
+    cp $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist.bak
     echo "Backup Devices Farm iOS agent finished."
 
   }
 
   restore() {
-    if [ ! -f backup/settings.env.bak ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist.bak ]; then
       echo_warning "You have to backup services in advance using: ./zebrunner.sh backup"
       echo_telegram
       exit -1
@@ -938,18 +481,11 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit
     fi
 
-    # restore .env and settings.env earlier to execute down correctly
-    cp backup/.env .env
-    cp backup/settings.env.bak backup/settings.env
-
     stop
 
     echo "Starting Devices Farm iOS agent restore..."
     cp backup/devices.txt devices.txt
-    cp ${SIMULATORS}.bak ${SIMULATORS}
-
-    rm -rf stf
-    cp -R stf.bak stf
+    cp $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist.bak $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
 
     echo "Restore Devices Farm iOS agent finished."
 
@@ -961,19 +497,13 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
   }
 
   version() {
-    if [ ! -f backup/settings.env ]; then
+    if [ ! -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist ]; then
       echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
       echo_telegram
       exit -1
     fi
 
-    source backup/settings.env
-
     echo "MCloud Device Farm: ${ZBR_MCLOUD_IOS_VERSION}"
-  }
-
-  export_settings() {
-    export -p | grep "ZBR" > backup/settings.env
   }
 
   confirm() {
@@ -1112,14 +642,6 @@ export SIMULATORS=${metaDataFolder}/simulators.txt
       exit 0
   }
 
-  syncSimulators() {
-    echo
-    echo `date +"%T"` Sync Simulators script started
-    xcrun simctl list --json > ${SIMULATORS}
-    echo `date +"%T"` Sync Simulators script finished
-    echo
-  }
-
   replace() {
     #TODO: https://github.com/zebrunner/zebrunner/issues/328 organize debug logging for setup/replace
     file=$1
@@ -1166,19 +688,6 @@ set_storage_settings() {
   export ZBR_STORAGE_TENANT=$ZBR_STORAGE_TENANT
 }
 
-
-if [ ! -d "$HOME/.nvm" ]; then
-  echo_warning "NVM must be installed as prerequisites!"
-  exit -1
-fi
-
-#load NVM into the bash path
-export NVM_DIR="$HOME/.nvm"
-[ -s "/usr/local/opt/nvm/nvm.sh" ] && . "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && . "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 case "$1" in
     setup)
