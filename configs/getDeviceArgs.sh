@@ -24,10 +24,18 @@ export DEVICE_UDID=$(echo $DEVICE_UDID)
 device_wda_bundle_id=`cat ${devices} | grep "$udid" | cut -d '|' -f 3`
 export device_wda_bundle_id=$(echo $device_wda_bundle_id)
 
-device_wda_home=`cat ${devices} | grep "$udid" | cut -d '|' -f 4`
-export device_wda_home=$(echo $device_wda_home)
+device_wda_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 4`
+export device_wda_port=$(echo $device_wda_port)
+
+device_mjpeg_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 5`
+export device_mjpeg_port=$(echo $device_mjpeg_port)
+
+device_appium_port=`cat ${devices} | grep "$udid" | cut -d '|' -f 6`
+export device_appium_port=$(echo $device_appium_port)
+
 
 export DEVICE_LOG="logs/${name}.log"
+export APPIUM_LOG="logs/appium-${name}.log"
 
 export WDA_ENV="${metaDataFolder}/${name}.env"
 if [ -f "${WDA_ENV}" ]; then

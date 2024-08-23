@@ -7,26 +7,25 @@ BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 . ${BASEDIR}/.env
 
 
+HUB_HOST=local_ip
+HUB_PORT=4446
+STF_NODE_HOST=local_ip
+
 DEVICENAME=${name}
-DEVICEVERSION=${PLATFORM_VERSION}
 DEVICEPLATFORM=MAC
-DEVICEOS=iOS
+DEVICEOS=ios
 DEVICEUDID=${udid}
-PROXY_PORT=${proxy_port}
 cat << EndOfMessage
 {
   "capabilities":
       [
         {
-          "browserName": "safari",
-          "version":"${DEVICEVERSION}",
           "maxInstances": 1,
           "platform":"${DEVICEPLATFORM}",
+          "platformVersion":"*",
 	  "deviceName": "${DEVICENAME}",
           "deviceType": "${DEVICETYPE}",
           "platformName":"${DEVICEOS}",
-          "platformVersion":"${DEVICEVERSION}",
-          "proxy_port":"${PROXY_PORT}",
 	  "udid": "${DEVICEUDID}"
         }
       ],
@@ -34,7 +33,7 @@ cat << EndOfMessage
   {
     "proxy": "com.zebrunner.mcloud.grid.MobileRemoteProxy",
     "url":"http://${HUB_HOST}:${HUB_PORT}/wd/hub",
-    "port": ${appium_port},
+    "port": ${device_appium_port},
     "host": "${STF_NODE_HOST}",
     "hubPort": ${HUB_PORT},
     "hubHost": "${HUB_HOST}",
@@ -42,7 +41,7 @@ cat << EndOfMessage
     "maxSession": 1,
     "register": true,
     "registerCycle": 5000,
-    "automationName": "${AUTOMATION_NAME}",
+    "automationName": "XCUITest",
     "downPollingLimit": 10
   }
 }

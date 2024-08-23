@@ -257,11 +257,12 @@ export udid_position=2
         exit 1
       fi
 
+      start-appium $udid >> ${APPIUM_LOG} 2>&1
+
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
     fi
   }
-
 
   start-wda() {
     udid=$1
@@ -296,19 +297,64 @@ export udid_position=2
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
       #for simulators continue to build WDA
 
-      export SIMCTL_CHILD_USE_PORT=$WDA_PORT
-      export SIMCTL_CHILD_MJPEG_SERVER_PORT=$MJPEG_PORT
+      export SIMCTL_CHILD_USE_PORT=$device_wda_port
+      export SIMCTL_CHILD_MJPEG_SERVER_PORT=$device_mjpeg_port
       export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
 
-      echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
-      xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
+      echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
+      xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
     fi
 
-    echo "export WDA_HOST=${WDA_HOST}" > ${WDA_ENV}
-    echo "export WDA_PORT=${WDA_PORT}" >> ${WDA_ENV}
-    echo "export MJPEG_PORT=${MJPEG_PORT}" >> ${WDA_ENV}
+    export WDA_HOST=localhost
+    export WDA_PORT=${device_wda_port}
+    export MJPEG_PORT=${device_mjpeg_port}
+
+    echo "export WDA_HOST=localhost" > ${WDA_ENV}
+    echo "export WDA_PORT=${device_wda_port}" >> ${WDA_ENV}
+    echo "export MJPEG_PORT=${device_mjpeg_port}" >> ${WDA_ENV}
 
     return 0
+  }
+
+  start-appium() {
+    udid=$1
+    if [ "$udid" == "" ]; then
+      echo_warning "Unable to start Appium without device udid!"
+      return 0
+    fi
+    #echo udid: $udid
+
+    #start-session $udid
+
+    . ./configs/getDeviceArgs.sh $udid
+
+    if [ "${WDA_HOST}" == "" ]; then
+      echo_warning "Unable to start Appium for '${name}' as Device IP not detected!"
+      exit -1
+    fi
+
+    echo "Starting appium: ${udid} - device name : ${name}"
+
+    ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
+
+    newWDA=false
+
+    export BUCKET=$ZBR_STORAGE_BUCKET
+    export TENANT=$ZBR_STORAGE_TENANT
+    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
+    export APPIUM_APP_WAITING_TIMEOUT=600
+
+    nvm use 18
+    export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
+    #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
+    nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+      --session-override \
+      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
+      --default-capabilities \
+     '{"appium:udid": "'${udid}'", "appium:mjpegServerPort": '${device_mjpeg_port}', "appium:clearSystemFiles": "false", "appium:webDriverAgentUrl":"'http://${WDA_HOST}:${device_wda_port}'", "appium:preventWDAAttachments": "true", 
+"appium:simpleIsVisibleCheck": "true", "appium:wdaLocalPort": "'$device_wda_port'", "appium:usePrebuiltWDA": "true", "appium:useNewWDA": "'$newWDA'", 
+"appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
+      --nodeconfig ./metaData/$udid.json &
   }
 
   recover() {
@@ -382,6 +428,7 @@ export udid_position=2
     echo "$DEVICE_NAME ($DEVICE_UDID)"
     launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
+    stop-appium $udid >> ${APPIUM_LOG} 2>&1
   }
 
 
@@ -416,6 +463,27 @@ export udid_position=2
     . ./configs/getDeviceArgs.sh $udid
     rm -fv "${WDA_ENV}"
 
+  }
+
+  stop-appium() {
+    if [ ! -f backup/settings.env ]; then
+      echo_warning "You have to setup services in advance using: ./zebrunner.sh setup"
+      echo_telegram
+      exit -1
+    fi
+
+    udid=$1
+    #echo udid: $udid
+    if [ "$udid" != "" ]; then
+      export pids=`ps -eaf | grep ${udid} | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+      rm -fv ${metaDataFolder}/${udid}.json
+    else
+      export pids=`ps -eaf | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+      rm -fv ${metaDataFolder}/*.json
+    fi
+    #echo pids: $pids
+
+    kill_processes $pids
   }
 
   status() {
