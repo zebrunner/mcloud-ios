@@ -205,12 +205,12 @@ export udid_position=2
         continue
       fi
 
-      launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-      launchctl list | grep com.zebrunner.mcloud.$udid   #> /dev/null 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        return 1
-      fi
+      #launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+      #launchctl list | grep com.zebrunner.mcloud.$udid   #> /dev/null 2>&1
+      #if [ $? -eq 1 ]; then
+      #  echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+      #  return 1
+      #fi
     done < ${devices}
 
     #launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
@@ -233,10 +233,6 @@ export udid_position=2
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
       start-wda $udid >> ${DEVICE_LOG} 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        exit 1
-      fi
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -264,15 +260,9 @@ export udid_position=2
     if [ -n "$physical" ]; then
       #Start the WDA service on the device using the WDA bundleId
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
-      echo TODO: replace by xcodebuild
-      echo ios runwda --bundleid=$device_wda_bundle_id --testrunnerbundleid=$device_wda_bundle_id --xctestconfig=${schema}.xctest \
-        --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
 
-      /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${device_wda_home}/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
-        -scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test
-
-      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
-      echo xcrun devicectl device process launch -e '{"USE_PORT": "8100", "MJPEG_SERVER_PORT": "8101", "UITEST_DISABLE_ANIMATIONS": "YES"}' --device $udid $device_wda_bundle_id
+      runWda &
+      sleep 3
 
     fi
 
@@ -282,6 +272,43 @@ export udid_position=2
 
     return 0
   }
+
+#### Start WDA
+runWda() {
+  # This is temporary solution for modal dialogs which prevent WDA startup.
+  # TODO: !!!
+  logger "Resetting PineBoard process and waiting for 5 seconds."
+  ios kill com.apple.PineBoard --udid="$udid"
+  sleep 5
+
+  declare -i index=0
+  isWdaStarted=0
+  while [[ $index -lt 10 ]]; do
+    if ! (pgrep -f "ios runwda .*$udid" > /dev/null 2>&1); then
+      ios runwda \
+        --bundleid="${device_wda_bundle_id:="com.facebook.WebDriverAgentRunner.xctrunner"}" \
+        --testrunnerbundleid="${device_wda_bundle_id:="com.facebook.WebDriverAgentRunner.xctrunner"}" \
+        --xctestconfig="${schema}.xctest" \
+        --env USE_PORT="$WDA_PORT" \
+        --env MJPEG_SERVER_PORT="$MJPEG_PORT" \
+        --env UITEST_DISABLE_ANIMATIONS=YES \
+        --udid="$udid"
+      logger "WARN" "'ios runwda' process broke. Attempt to recover."
+      isWdaStarted=0
+    else
+      logger "WARN" "WDA already started"
+      isWdaStarted=1
+      break
+    fi
+    sleep 1
+    index+=1
+  done; index=0
+
+  if [[ $isWdaStarted -eq 0 ]]; then
+    logger "ERROR" "Can't run WDA. Exiting!"
+    exit 0
+  fi
+}
 
   recover() {
     udid=$1
@@ -352,8 +379,23 @@ export udid_position=2
     . ./configs/getDeviceArgs.sh $udid
 
     echo "$DEVICE_NAME ($DEVICE_UDID)"
-    launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-    stop-wda $udid >> ${DEVICE_LOG} 2>&1
+    #launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+
+    # example processes for killing
+    #  /bin/bash ./zebrunner.sh start d050bc1212f0671b41b617ee2fd2de463b5f0bba
+    #  501 96341 96337   0  6:37AM ??         0:00.14 ios forward 8101 8101 --udid=d050bc1212f0671b41b617ee2fd2de463b5f0bba
+    #  501 96343 96326   0  6:37AM ??         0:00.18 ios runwda --bundleid=com.facebook.WebDriverAgentRunner.xctrunner --testrunnerbundleid=com.facebook.WebDriverAgentRunner.xctrunner --xctestconfig=WebDriverAgentRunner_tvOS.xctest --env USE_PORT=8100 --env MJPEG_SERVER_PORT=8101 --env UITEST_DISABLE_ANIMATIONS=YES --udid=d050bc1212f0671b41b617ee2fd2de463b5f0bba
+    #  501 96722 96331   0  6:41AM ??         0:00.13 ios forward 8100 8100 --udid=d050bc1212f0671b41b617ee2fd2de463b5f0bba
+
+    export pids=`ps -eaf | grep ${udid} | grep zebrunner.sh | grep start | grep -v grep | awk '{ print $2 }'`
+    echo "zebrunner.sh: $pids"
+    kill_processes $pids
+
+    # kill ios forward proxy requests
+    export pids=`ps -eaf | grep ${udid} | grep ios | grep 'forward' | grep -v grep | awk '{ print $2 }'`
+    echo "ios forward pid: $pids"
+    kill_processes $pids
+
   }
 
 
