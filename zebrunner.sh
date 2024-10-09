@@ -277,8 +277,10 @@ export udid_position=2
 runWda() {
   # This is temporary solution for modal dialogs which prevent WDA startup.
   # TODO: !!!
-  logger "Resetting PineBoard process and waiting for 5 seconds."
+  logger "Resetting PineBoard for tvOS and springboard for phones and tbalets process and waiting for 5 seconds."
   ios kill com.apple.PineBoard --udid="$udid"
+  ios kill com.apple.springboard --udid="$udid"
+
   sleep 5
 
   declare -i index=0
