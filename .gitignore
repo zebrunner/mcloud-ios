@@ -1,4 +1,3 @@
-.env
 nohup.out
 backup/*
 logs/*
@@ -7,9 +6,7 @@ metaData/*.json
 .DS_Store
 *.bak
 tmp/*
-stf
 *.mp4
 *.log
 metaData/simulators.txt
 WebDriverAgent.ipa
-devimages
