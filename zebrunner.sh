@@ -145,7 +145,7 @@ export udid_position=2
     #   launchctl kickstart gui/${UID}/com.zebrunner.mcloud.${UDID}
     # to unload recovery script run:
     #   launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
-
+    echo "setup-device done"
   }
 
   on-usb-update() {
@@ -243,12 +243,22 @@ export udid_position=2
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
+
+      # # starting simulator
+      isSimStarted=$(xcrun simctl list | grep -o "($udid) (Booted)")
+      if [ ! -n "$physical" ] && [ -z "$isSimStarted" ]; then
+        xcrun simctl boot "$udid"
+      fi
+
+      echo "Going to start appium server for device $DEVICE_UDID" >> ${APPIUM_LOG} 2>&1
+      start-appium $udid >> ${APPIUM_LOG} 2>&1
+
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
       launchctl list | grep com.zebrunner.mcloud.$udid > /dev/null 2>&1
       if [ $? -eq 1 ]; then
         echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        return 1
+#        return 1
       fi
 
       start-wda $udid >> ${DEVICE_LOG} 2>&1
@@ -256,8 +266,6 @@ export udid_position=2
         echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
         exit 1
       fi
-
-      start-appium $udid >> ${APPIUM_LOG} 2>&1
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -333,7 +341,13 @@ export udid_position=2
       exit -1
     fi
 
-    echo "Starting appium: ${udid} - device name : ${name}"
+    appium_running=`ps -ef | grep appium | grep $udid`
+    if [[ ! -z "$appium_running" ]]; then
+      echo "Appium process is already running for device ${udid}, so won't intiate new appium session" >> ${APPIUM_LOG} 2>&1
+      return 0
+    fi
+
+    echo "Starting appium: ${udid} - device name : ${name}" >> ${APPIUM_LOG} 2>&1
 
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
 
@@ -344,6 +358,10 @@ export udid_position=2
     export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
 
+    # extra config for setting up of nvm path
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+    [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
     nvm use 18
     export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
@@ -427,6 +445,11 @@ export udid_position=2
 
     echo "$DEVICE_NAME ($DEVICE_UDID)"
     launchctl unload $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
+    # stopping simulator
+    isSimShutdown=`xcrun simctl list | grep '($udid) (Shutdown)'`
+    if ([ ! -n "$physical" ] && [ -z "$isSimShutdown" ]); then
+      xcrun simctl shutdown $udid
+    fi
     stop-wda $udid >> ${DEVICE_LOG} 2>&1
     stop-appium $udid >> ${APPIUM_LOG} 2>&1
   }
@@ -845,4 +868,3 @@ case "$1" in
         exit 1
         ;;
 esac
-
