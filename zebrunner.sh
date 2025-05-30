@@ -250,6 +250,13 @@ export udid_position=2
         xcrun simctl boot "$udid"
       fi
 
+      # starting WDA firstly as it sets environment variables WDA_HOST/WDA_PORT for appium process
+      start-wda $udid >> ${DEVICE_LOG} 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+        exit 1
+      fi
+
       echo "Going to start appium server for device $DEVICE_UDID" >> ${APPIUM_LOG} 2>&1
       start-appium $udid >> ${APPIUM_LOG} 2>&1
 
@@ -259,13 +266,7 @@ export udid_position=2
       if [ $? -eq 1 ]; then
         echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
 #        return 1
-      fi
-
-      start-wda $udid >> ${DEVICE_LOG} 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        exit 1
-      fi
+      fi      
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -355,15 +356,17 @@ export udid_position=2
 
     export BUCKET=$ZBR_STORAGE_BUCKET
     export TENANT=$ZBR_STORAGE_TENANT
-    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
+    # TODO: feature is not usable for the latest Appium
+#    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
+    export APPIUM_APP_FETCH_RETRIES=1
 
     # extra config for setting up of nvm path
     export NVM_DIR="$HOME/.nvm"
     [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
     nvm use 18
-    export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
+    export APPIUM_HOME=/Users/mcloud/.nvm/versions/node/v18.18.2/lib/node_modules/appium
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
     nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
       --session-override \
