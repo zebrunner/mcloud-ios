@@ -256,8 +256,28 @@ export udid_position=2
         xcrun simctl boot "$udid"
       fi
 
-      echo "Going to start appium server for device $DEVICE_UDID" >> ${APPIUM_LOG} 2>&1
+      # TODO: this env variables setting was moved out of start-wda() method
+      export WDA_HOST=localhost
+      export WDA_PORT=${device_wda_port}
+      export MJPEG_PORT=${device_mjpeg_port}
+
+      echo "export WDA_HOST=localhost" > ${WDA_ENV}
+      echo "export WDA_PORT=${device_wda_port}" >> ${WDA_ENV}
+      echo "export MJPEG_PORT=${device_mjpeg_port}" >> ${WDA_ENV}
+
+      echo "Going to start appium server for device $DEVICE_UDID" >> ${DEVICE_LOG} 2>&1
       start-appium $udid >> ${APPIUM_LOG} 2>&1
+
+      # TODO: investigate why moving of start-wda before appium start leads to appium gets not started at all
+      # to prevent that setting of needed env variables was moved out of start-wda method and moved upper in current method.
+      # Because these env variables are needed for appium process starting
+      # and start-wda is getting called after start-appium
+      start-wda $udid >> ${DEVICE_LOG} 2>&1
+      echo "WDA started successfully" >> ${DEVICE_LOG} 2>&1
+      if [ $? -eq 1 ]; then
+        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
+        exit 1
+      fi
 
       #load recovery service script
       launchctl load $HOME/Library/LaunchAgents/syncZebrunner_$udid.plist > /dev/null 2>&1
@@ -265,13 +285,7 @@ export udid_position=2
       if [ $? -eq 1 ]; then
         echo_warning "LaunchAgent recovery script is not loaded for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
 #        return 1
-      fi
-
-      start-wda $udid >> ${DEVICE_LOG} 2>&1
-      if [ $? -eq 1 ]; then
-        echo_warning "WDA is not started for $DEVICE_NAME udid: $DEVICE_UDID!" >> ${DEVICE_LOG} 2>&1
-        exit 1
-      fi
+      fi      
 
     else 
       echo "$DEVICE_NAME ($DEVICE_UDID) is disconnected!" >> ${DEVICE_LOG} 2>&1
@@ -319,18 +333,11 @@ export udid_position=2
       xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
     fi
 
-    export WDA_HOST=localhost
-    export WDA_PORT=${device_wda_port}
-    export MJPEG_PORT=${device_mjpeg_port}
-
-    echo "export WDA_HOST=localhost" > ${WDA_ENV}
-    echo "export WDA_PORT=${device_wda_port}" >> ${WDA_ENV}
-    echo "export MJPEG_PORT=${device_mjpeg_port}" >> ${WDA_ENV}
-
     return 0
   }
 
   start-appium() {
+    echo "start-appium() is running for ${udid}"
     udid=$1
     if [ "$udid" == "" ]; then
       echo_warning "Unable to start Appium without device udid!"
@@ -340,6 +347,7 @@ export udid_position=2
 
     #start-session $udid
 
+    echo "Generating of appium .json config for ${udid}"
     . ./configs/getDeviceArgs.sh $udid
 
     if [ "${WDA_HOST}" == "" ]; then
@@ -347,6 +355,7 @@ export udid_position=2
       exit -1
     fi
 
+    echo "Checking if appium process is already running for ${udid}"
     appium_running=`ps -ef | grep appium | grep $udid`
     if [[ ! -z "$appium_running" ]]; then
       echo "Appium process is already running for device ${udid}, so won't intiate new appium session" >> ${APPIUM_LOG} 2>&1
@@ -361,8 +370,10 @@ export udid_position=2
 
     export BUCKET=$ZBR_STORAGE_BUCKET
     export TENANT=$ZBR_STORAGE_TENANT
-    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
+    # TODO: feature is not usable for the latest Appium
+#    export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
+    export APPIUM_APP_FETCH_RETRIES=1
 
     export WDA_HOST=localhost
     export WDA_PORT=${device_wda_port}
@@ -377,6 +388,9 @@ export udid_position=2
     [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
     nvm use 18
+    export APPIUM_HOME=~/.nvm/versions/node/v18.18.2/lib/node_modules/appium
+    source ~/.bash_profile
+    echo "ENV Path: $PATH"
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
     if [ "$udid" == "08748AAC-F102-49B8-8045-FBF0D38621EA" ]; then
       echo "Starting Appium 2.19.0 for udid=$udid"
