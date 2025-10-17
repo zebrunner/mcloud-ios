@@ -7,9 +7,9 @@ BASEDIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )/../" && pwd )
 . ${BASEDIR}/.env
 
 
-HUB_HOST=local_ip
+HUB_HOST=ua-ecomm.zebrunner.farm
 HUB_PORT=4446
-STF_NODE_HOST=local_ip
+STF_NODE_HOST=82.214.177.186
 
 DEVICENAME=${name}
 DEVICEPLATFORM=MAC

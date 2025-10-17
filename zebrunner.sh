@@ -25,6 +25,12 @@ export udid_position=2
   setup() {
     print_banner
 
+    echo "cleaning up old appium sessions"
+    sh kill_appium.sh
+
+    echo "copying backlogged devices from 'devices.txt.bakk' config into 'devices.txt'"
+    cp devices.txt.bakk devices.txt
+
     # software prerequisites check like appium, xcode etc
 
     which ios > /dev/null
@@ -358,14 +364,26 @@ export udid_position=2
     export APPIUM_APPS_DIR=${BASEDIR}/tmp/appium-apps
     export APPIUM_APP_WAITING_TIMEOUT=600
 
+    export WDA_HOST=localhost
+    export WDA_PORT=${device_wda_port}
+    export MJPEG_PORT=${device_mjpeg_port}
+
+    echo "export WDA_HOST=localhost" > ${WDA_ENV}
+    echo "export WDA_PORT=${device_wda_port}" >> ${WDA_ENV}
+    echo "export MJPEG_PORT=${device_mjpeg_port}" >> ${WDA_ENV}
+
     # extra config for setting up of nvm path
     export NVM_DIR="$HOME/.nvm"
     [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
     nvm use 18
-    export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
-    nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+    if [ "$udid" == "08748AAC-F102-49B8-8045-FBF0D38621EA" ]; then
+      echo "Starting Appium 2.19.0 for udid=$udid"
+      # path were appium drivers are installed
+      export APPIUM_HOME=/Users/build/tools/appium_2_19_0/node_modules/@appium
+      echo "Starting Appium 2.19.0 for udid=$udid"
+      nohup node /Users/build/tools/appium_2_19_0/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
       --session-override \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
@@ -373,6 +391,18 @@ export udid_position=2
 "appium:simpleIsVisibleCheck": "true", "appium:wdaLocalPort": "'$device_wda_port'", "appium:usePrebuiltWDA": "true", "appium:useNewWDA": "'$newWDA'", 
 "appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
       --nodeconfig ./metaData/$udid.json &
+    else
+      export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
+      echo "Starting old Appium 2.1.3 for udid=$udid"
+      nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+      --session-override \
+      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
+      --default-capabilities \
+     '{"appium:udid": "'${udid}'", "appium:mjpegServerPort": '${device_mjpeg_port}', "appium:clearSystemFiles": "false", "appium:webDriverAgentUrl":"'http://${WDA_HOST}:${device_wda_port}'", "appium:preventWDAAttachments": "true", 
+"appium:simpleIsVisibleCheck": "true", "appium:wdaLocalPort": "'$device_wda_port'", "appium:usePrebuiltWDA": "true", "appium:useNewWDA": "'$newWDA'", 
+"appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
+      --nodeconfig ./metaData/$udid.json &
+    fi
   }
 
   recover() {
