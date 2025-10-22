@@ -385,7 +385,8 @@ export udid_position=2
     echo "export WDA_PORT=${device_wda_port}" >> ${WDA_ENV}
     echo "export MJPEG_PORT=${device_mjpeg_port}" >> ${WDA_ENV}
 
-    # extra config for setting up of nvm path
+	# extra config for setting up of nvm path
+    USER_NAME=$(whoami)
     export NVM_DIR="$HOME/.nvm"
     [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
@@ -397,9 +398,9 @@ export udid_position=2
     if [ "$udid" == "08748AAC-F102-49B8-8045-FBF0D38621EA" ]; then
       echo "Starting Appium 2.19.0 for udid=$udid"
       # path were appium drivers are installed
-      export APPIUM_HOME=/Users/build/tools/appium_2_19_0/node_modules/@appium
+      export APPIUM_HOME=/Users/${USER_NAME}/tools/appium_2_19_0/node_modules/@appium
       echo "Starting Appium 2.19.0 for udid=$udid"
-      nohup node /Users/build/tools/appium_2_19_0/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+      nohup node /Users/${USER_NAME}/tools/appium_2_19_0/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
       --session-override \
       --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
       --default-capabilities \
@@ -408,7 +409,7 @@ export udid_position=2
 "appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
       --nodeconfig ./metaData/$udid.json &
     else
-      export APPIUM_HOME=/Users/build/.nvm/versions/node/v18.18.2/lib/node_modules/appium
+      export APPIUM_HOME=/Users/${USER_NAME}/.nvm/versions/node/v18.18.2/lib/node_modules/appium
       echo "Starting old Appium 2.1.3 for udid=$udid"
       nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
       --session-override \
