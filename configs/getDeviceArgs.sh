@@ -36,6 +36,7 @@ export device_appium_port=$(echo $device_appium_port)
 
 export DEVICE_LOG="logs/${name}.log"
 export APPIUM_LOG="logs/appium-${name}.log"
+export RECORDING_LOG="logs/recording-${name}.log"
 
 export WDA_ENV="${metaDataFolder}/${name}.env"
 if [ -f "${WDA_ENV}" ]; then

@@ -268,6 +268,8 @@ export udid_position=2
       echo "Going to start appium server for device $DEVICE_UDID" >> ${DEVICE_LOG} 2>&1
       start-appium $udid >> ${APPIUM_LOG} 2>&1
 
+      start-record-watcher $udid >> ${RECORDING_LOG} 2>&1
+
       # TODO: investigate why moving of start-wda before appium start leads to appium gets not started at all
       # to prevent that setting of needed env variables was moved out of start-wda method and moved upper in current method.
       # Because these env variables are needed for appium process starting
@@ -445,6 +447,24 @@ export udid_position=2
       #( start-device $udid & )
       ( ${BASEDIR}/zebrunner.sh start $udid & )
     fi
+  }
+
+  start-record-watcher() {
+    udid=$1
+    if [ "$udid" == "" ]; then
+      echo_warning "Unable to start WDA without device udid!"
+      return 0
+    fi
+
+    echo "Checking if recording watcher is already running for ${udid}"
+    watcher_running=`ps -ef | grep mac-recording-watcher.sh | grep $udid`
+    if [[ ! -z "$watcher_running" ]]; then
+      echo "Watcher process is already running for device ${udid}, so won't intiate new appium session" >> ${APPIUM_LOG} 2>&1
+      return 0
+    fi
+
+    echo "start-record-watcher() is running for ${udid}"
+    nohup sh recording/mac-recording-watcher.sh ${APPIUM_LOG} $udid &
   }
 
   stop() {

@@ -10,3 +10,5 @@ tmp/*
 *.log
 metaData/simulators.txt
 WebDriverAgent.ipa
+recording/artifacts
+recording/tmp
