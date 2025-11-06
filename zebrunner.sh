@@ -327,15 +327,60 @@ export udid_position=2
       #TODO: investigate an option to install from WebDriverAgent.ipa using `xcrun simctl install ${udid} *.app`!!!
       #for simulators continue to build WDA
 
-      export SIMCTL_CHILD_USE_PORT=$device_wda_port
-      export SIMCTL_CHILD_MJPEG_SERVER_PORT=$device_mjpeg_port
-      export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
+      if check-wda $device_wda_port; then
+        echo "WDA is already running on port $device_wda_port. Won't relaunch it"
+        exit 0
+      else
+        echo "WDA wasn't found on port $device_wda_port."
+        echo "Will sleep for 30 sec and try again."
+        sleep 30
+        if check-wda $device_wda_port; then
+          echo "WDA was finally found on port $device_wda_port. Won't relaunch it"
+          exit 0
+        fi
+        echo "WDA still wasn't found on port $device_wda_port. Will attempt to start it"
+        
+        export SIMCTL_CHILD_USE_PORT=$device_wda_port
+        export SIMCTL_CHILD_MJPEG_SERVER_PORT=$device_mjpeg_port
+        export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
 
-      echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
-      xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
+        echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
+        xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
+
+        echo "Will sleep for 1 minute"
+        sleep 60
+        if check-wda $device_wda_port; then
+          echo "WDA is accessible on port $device_wda_port"
+        else
+          echo "WDA wasn't found on port $device_wda_port after launching and waiting for 1 minute. Might be simulator issue, will shut it down"
+          echo "[i] Shutting down simulator ${DEVICE_UDID}..."
+          xcrun simctl shutdown "${DEVICE_UDID}" 2>/dev/null
+          echo "[✓] Simulator was shut down. Exiting."
+        fi
+      fi
     fi
 
     return 0
+  }
+
+  check-wda() {
+    port=$1
+    if [ "$port" == "" ]; then
+      echo_warning "Provide port value for check_wda() function"
+      return 0
+    fi
+    # Return 0 if healthy, 1 otherwise
+    local out http
+    http=$(curl -sS -m 2 -w "%{http_code}" "http://${WDA_HOST}:$port/status" -o /tmp/wda_status.json || true)
+    if [[ "$http" != "200" ]]; then
+      return 1
+    fi
+    # If jq is present, ensure status=0; else assume OK on 200
+    if command -v jq >/dev/null 2>&1; then
+      jq -e '.status==0 or .value?.ready==true' /tmp/wda_status.json >/dev/null 2>&1
+    else
+      return 0
+    fi
   }
 
   start-appium() {
@@ -391,35 +436,20 @@ export udid_position=2
     [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
     [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
     nvm use 18
-    export APPIUM_HOME=~/.nvm/versions/node/v18.18.2/lib/node_modules/appium
     source ~/.bash_profile
     echo "ENV Path: $PATH"
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
-    if [ "$udid" == "08748AAC-F102-49B8-8045-FBF0D38621EA" ]; then
-      echo "Starting Appium 2.19.0 for udid=$udid"
-      # path were appium drivers are installed
-      export APPIUM_HOME=/Users/${USER_NAME}/tools/appium_2_19_0/node_modules/@appium
-      echo "Starting Appium 2.19.0 for udid=$udid"
-      nohup node /Users/${USER_NAME}/tools/appium_2_19_0/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
-      --session-override \
-      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
-      --default-capabilities \
-     '{"appium:udid": "'${udid}'", "appium:mjpegServerPort": '${device_mjpeg_port}', "appium:clearSystemFiles": "false", "appium:webDriverAgentUrl":"'http://${WDA_HOST}:${device_wda_port}'", "appium:preventWDAAttachments": "true", 
+    echo "Starting Appium 2.19.0 for udid=$udid"
+    # path were appium drivers are installed
+    export APPIUM_HOME=/Users/${USER_NAME}/tools/appium_2_19_0
+    nohup node ${APPIUM_HOME}/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+    --session-override \
+    --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
+    --default-capabilities \
+    '{"appium:udid": "'${udid}'", "appium:mjpegServerPort": '${device_mjpeg_port}', "appium:clearSystemFiles": "false", "appium:webDriverAgentUrl":"'http://${WDA_HOST}:${device_wda_port}'", "appium:preventWDAAttachments": "true", 
 "appium:simpleIsVisibleCheck": "true", "appium:wdaLocalPort": "'$device_wda_port'", "appium:usePrebuiltWDA": "true", "appium:useNewWDA": "'$newWDA'", 
-"appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
-      --nodeconfig ./metaData/$udid.json &
-    else
-      export APPIUM_HOME=/Users/${USER_NAME}/.nvm/versions/node/v18.18.2/lib/node_modules/appium
-      echo "Starting old Appium 2.1.3 for udid=$udid"
-      nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
-      --session-override \
-      --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
-      --default-capabilities \
-     '{"appium:udid": "'${udid}'", "appium:mjpegServerPort": '${device_mjpeg_port}', "appium:clearSystemFiles": "false", "appium:webDriverAgentUrl":"'http://${WDA_HOST}:${device_wda_port}'", "appium:preventWDAAttachments": "true", 
-"appium:simpleIsVisibleCheck": "true", "appium:wdaLocalPort": "'$device_wda_port'", "appium:usePrebuiltWDA": "true", "appium:useNewWDA": "'$newWDA'", 
-"appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'" }' \
-      --nodeconfig ./metaData/$udid.json &
-    fi
+"appium:deviceName":"'$name'", "appium:automationName":"'XCUITest'", "appium:platformName":"'ios'", "appium:skipSyncUiDialogTranslation": "true" }' \
+    --nodeconfig ./metaData/$udid.json &
   }
 
   recover() {
