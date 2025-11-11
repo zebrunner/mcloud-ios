@@ -67,7 +67,8 @@ TRANSCODE_CRF=${TRANSCODE_CRF:-31}
 TRANSCODE_PRESET=${TRANSCODE_PRESET:-medium}
 
 # !!!!!! SET ACTUAL STATE_DIR/ARTIFACTS_DIR HERE !!!!!!
-STATE_DIR="recording/tmp"
+# Use per-UDID state directory to avoid conflicts across simultaneous watchers
+STATE_DIR="recording/tmp/${TARGET_UDID}"
 ARTIFACTS_DIR="recording/artifacts"
 SESSION_WD_PATH='/wd/hub/session/'
 
