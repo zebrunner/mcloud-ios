@@ -453,13 +453,13 @@ run_transcoder_worker() {
     if [ "${TRANSCODE_ENABLE}" = "true" ] && command -v ffmpeg >/dev/null 2>&1; then
       echo "Running: ffmpeg -y -hide_banner -loglevel error \
         -i "$src" \
-        -c:v hevc_videotoolbox -b:v 3500k -maxrate 3500k -bufsize 7000k \
+        -c:v hevc_videotoolbox -b:v 1400k -maxrate 1400k -bufsize 2800k \
         -tag:v hvc1 -pix_fmt yuv420p \
         -an -movflags +faststart \
         "$tmp_out" &"
       ffmpeg -y -hide_banner -loglevel error \
         -i "$src" \
-        -c:v hevc_videotoolbox -b:v 3500k -maxrate 3500k -bufsize 7000k \
+        -c:v hevc_videotoolbox -b:v 1400k -maxrate 1400k -bufsize 2800k \
         -tag:v hvc1 -pix_fmt yuv420p \
         -an -movflags +faststart \
         "$tmp_out" &
