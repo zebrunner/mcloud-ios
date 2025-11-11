@@ -268,8 +268,6 @@ export udid_position=2
       echo "Going to start appium server for device $DEVICE_UDID" >> ${DEVICE_LOG} 2>&1
       start-appium $udid >> ${APPIUM_LOG} 2>&1
 
-      start-record-watcher $udid >> ${RECORDING_LOG} 2>&1
-
       # TODO: investigate why moving of start-wda before appium start leads to appium gets not started at all
       # to prevent that setting of needed env variables was moved out of start-wda method and moved upper in current method.
       # Because these env variables are needed for appium process starting
@@ -351,6 +349,10 @@ export udid_position=2
         sleep 60
         if check-wda $device_wda_port; then
           echo "WDA is accessible on port $device_wda_port"
+
+          # killing all remained recording processes for this udid
+          kill -9 $(ps aux | grep 'mac-recording' | grep $udid | awk '{print $2}')
+          start-record-watcher $udid >> ${RECORDING_LOG} 2>&1
         else
           echo "WDA wasn't found on port $device_wda_port after launching and waiting for 1 minute. Might be simulator issue, will shut it down"
           echo "[i] Shutting down simulator ${DEVICE_UDID}..."
