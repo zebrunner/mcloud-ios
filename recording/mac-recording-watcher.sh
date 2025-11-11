@@ -21,7 +21,8 @@
 #   - REPLAY_EXISTING=true to process existing content of .log files on startup
 #   - WDA_LOG_FILE (optional): if set and file exists, will be copied into artifact folder as wda.log
 #   - SCAN_INTERVAL (optional, default: 2) seconds to rescan for new .log files
-#   - SIMCTL_CODEC (optional, default: hevc) codec for simctl recordVideo (hevc|h264)
+#   - SIMCTL_CODEC (optional, default: h264) codec for simctl recordVideo (h264|hevc)
+#   - SIMCTL_NICE (optional, default: 10) lower priority for the recording process
 #   - TRANSCODE_ENABLE (optional, default: true) enable ffmpeg post-transcode to shrink size
 #   - TRANSCODE_CRF (optional, default: 28) CRF for libx265 (lower=better/larger). Template-based.
 #   - TRANSCODE_PRESET (optional, default: medium) ffmpeg preset for speed/size tradeoff
@@ -61,10 +62,11 @@ fi
 SCAN_INTERVAL=${SCAN_INTERVAL:-2}
 WAIT_BOOT_TIMEOUT=${WAIT_BOOT_TIMEOUT:-30}
 WAIT_BOOT_INTERVAL=${WAIT_BOOT_INTERVAL:-0.5}
-SIMCTL_CODEC=${SIMCTL_CODEC:-hevc}
+SIMCTL_CODEC=${SIMCTL_CODEC:-h264}
 TRANSCODE_ENABLE=${TRANSCODE_ENABLE:-true}
 TRANSCODE_CRF=${TRANSCODE_CRF:-31}
 TRANSCODE_PRESET=${TRANSCODE_PRESET:-medium}
+SIMCTL_NICE=${SIMCTL_NICE:-10}
 
 # !!!!!! SET ACTUAL STATE_DIR/ARTIFACTS_DIR HERE !!!!!!
 # Use per-UDID state directory to avoid conflicts across simultaneous watchers
@@ -232,7 +234,7 @@ start_recording() {
 
   # Start simctl recordVideo in background and capture logs for diagnostics
   # Note: simctl writes a QuickTime-compatible .mp4/.mov depending on codec/container
-  xcrun simctl io "$TARGET_UDID" recordVideo --codec="${SIMCTL_CODEC}" "$ARTIFACTS_DIR/${rec_id}.mp4" >"$STATE_DIR/record-${rec_id}.log" 2>&1 &
+  nice -n "${SIMCTL_NICE}" xcrun simctl io "$TARGET_UDID" recordVideo --codec="${SIMCTL_CODEC}" "$ARTIFACTS_DIR/${rec_id}.mp4" >"$STATE_DIR/record-${rec_id}.log" 2>&1 &
   local rec_pid=$!
   echo "$rec_pid" > "$(pidfile_for "$rec_id")"
   log_info "record pid for $rec_id: $rec_pid"
