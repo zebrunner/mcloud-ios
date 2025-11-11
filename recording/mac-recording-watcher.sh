@@ -451,18 +451,18 @@ run_transcoder_worker() {
     log_info "Transcoder: input=$src size=${in_size} bytes"
 
     if [ "${TRANSCODE_ENABLE}" = "true" ] && command -v ffmpeg >/dev/null 2>&1; then
-      echo ffmpeg -y -hide_banner -loglevel error \
+      echo "Running: ffmpeg -y -hide_banner -loglevel error \
         -i "$src" \
         -c:v hevc_videotoolbox -b:v 3500k -maxrate 3500k -bufsize 7000k \
         -tag:v hvc1 -pix_fmt yuv420p \
         -an -movflags +faststart \
-        "$tmp_out"
+        "$tmp_out" &"
       ffmpeg -y -hide_banner -loglevel error \
         -i "$src" \
         -c:v hevc_videotoolbox -b:v 3500k -maxrate 3500k -bufsize 7000k \
         -tag:v hvc1 -pix_fmt yuv420p \
         -an -movflags +faststart \
-        "$tmp_out"
+        "$tmp_out" &
       # if ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx265; then
       #   echo "Running: ffmpeg -y -hide_banner -loglevel error -i "$src" \
       #     -c:v libx265 -preset "${TRANSCODE_PRESET}" -crf "${TRANSCODE_CRF}" -tag:v hvc1 \
