@@ -350,8 +350,6 @@ export udid_position=2
         if check-wda $device_wda_port; then
           echo "WDA is accessible on port $device_wda_port"
 
-          # killing all remained recording processes for this udid
-          kill -9 $(ps aux | grep 'mac-recording' | grep $udid | awk '{print $2}')
           start-record-watcher $udid >> ${RECORDING_LOG} 2>&1
         else
           echo "WDA wasn't found on port $device_wda_port after launching and waiting for 1 minute. Might be simulator issue, will shut it down"
@@ -497,7 +495,8 @@ export udid_position=2
     fi
 
     echo "start-record-watcher() is running for ${udid}"
-    nohup sh recording/mac-recording-watcher.sh ${APPIUM_LOG} $udid &
+    source ~/.bash_profile
+    nohup bash recording/mac-recording-watcher.sh ${APPIUM_LOG} $udid &
   }
 
   stop() {
