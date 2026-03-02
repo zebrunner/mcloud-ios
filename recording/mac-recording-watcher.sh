@@ -67,6 +67,7 @@ TRANSCODE_ENABLE=${TRANSCODE_ENABLE:-true}
 TRANSCODE_CRF=${TRANSCODE_CRF:-31}
 TRANSCODE_PRESET=${TRANSCODE_PRESET:-medium}
 SIMCTL_NICE=${SIMCTL_NICE:-10}
+MAX_RECORDING_SECONDS=${MAX_RECORDING_SECONDS:-1800}
 
 # !!!!!! SET ACTUAL STATE_DIR/ARTIFACTS_DIR HERE !!!!!!
 # Use per-UDID state directory to avoid conflicts across simultaneous watchers
@@ -179,6 +180,11 @@ pidfile_for() {
   echo "$STATE_DIR/rec-$id.pid"
 }
 
+timeout_pidfile_for() {
+  local id="$1"
+  echo "$STATE_DIR/rec-$id.timeout.pid"
+}
+
 is_running_pid() {
   local pid="$1"
   if [ -z "$pid" ]; then
@@ -240,6 +246,16 @@ start_recording() {
   log_info "record pid for $rec_id: $rec_pid"
   mark_started_session "$rec_id"
 
+  # Auto-stop recording after MAX_RECORDING_SECONDS (default: 30 minutes)
+  if [ "${MAX_RECORDING_SECONDS}" -gt 0 ] 2>/dev/null; then
+    (
+      sleep "${MAX_RECORDING_SECONDS}"
+      log_warn "Max recording time reached (${MAX_RECORDING_SECONDS}s) for $rec_id; stopping"
+      stop_recording "$rec_id"
+    ) &
+    echo $! > "$(timeout_pidfile_for "$rec_id")"
+  fi
+
   # Quick health check: ensure process is still running shortly after spawn
   sleep 0.5
   if ! ps -p "$rec_pid" > /dev/null 2>&1; then
@@ -256,6 +272,18 @@ stop_recording() {
   fi
 
   log_info "Stopping recording for $rec_id"
+
+  # Cancel auto-stop timer if present
+  local timeout_pid_file
+  timeout_pid_file="$(timeout_pidfile_for "$rec_id")"
+  if [ -f "$timeout_pid_file" ]; then
+    local tpid
+    tpid=$(cat "$timeout_pid_file" 2>/dev/null || true)
+    if [ -n "$tpid" ] && ps -p "$tpid" > /dev/null 2>&1; then
+      kill -TERM "$tpid" 2>/dev/null || true
+    fi
+    rm -f "$timeout_pid_file"
+  fi
 
   local pid_file
   pid_file="$(pidfile_for "$rec_id")"
@@ -312,6 +340,7 @@ stop_recording() {
   fi
 
   rm -f "$(pidfile_for "$rec_id")"
+  rm -f "$(timeout_pidfile_for "$rec_id")"
   unmark_started_session "$rec_id"
 }
 
