@@ -404,7 +404,7 @@ export udid_position=2
   }
 
   start-appium() {
-    echo "start-appium() is running for ${udid}"
+    log "start-appium() is running for ${udid}"
     udid=$1
     if [ "$udid" == "" ]; then
       echo_warning "Unable to start Appium without device udid!"
@@ -414,7 +414,7 @@ export udid_position=2
 
     #start-session $udid
 
-    echo "Generating of appium .json config for ${udid}"
+    log "Generating of appium .json config for ${udid}"
     . ./configs/getDeviceArgs.sh $udid
 
     if [ "${WDA_HOST}" == "" ]; then
@@ -422,14 +422,19 @@ export udid_position=2
       exit -1
     fi
 
-    echo "Checking if appium process is already running for ${udid}"
-    appium_running=`ps -ef | grep appium | grep $udid`
+    log "Checking if appium process is already running for ${udid}"
+    # Match strictly the Appium server process for this device by its unique appium port.
+    # Note: a loose `grep appium | grep $udid` also matches the recording watcher
+    # (its log path contains "appium-<name>.log") and the WDA xcodebuild process
+    # (its path contains "appium-xcuitest-driver" and the udid), which produced
+    # false positives that prevented Appium from ever being restarted after a crash.
+    appium_running=`ps -eaf | grep -v grep | grep -- "--port ${device_appium_port}" | grep -i appium`
     if [[ ! -z "$appium_running" ]]; then
-      echo "Appium process is already running for device ${udid}, so won't intiate new appium session" >> ${APPIUM_LOG} 2>&1
+      log "Appium process is already running for device ${udid}, so won't intiate new appium session" >> ${APPIUM_LOG} 2>&1
       return 0
     fi
 
-    echo "Starting appium: ${udid} - device name : ${name}" >> ${APPIUM_LOG} 2>&1
+    log "Starting appium: ${udid} - device name : ${name}" >> ${APPIUM_LOG} 2>&1
 
     ./configs/configgen.sh $udid > ${BASEDIR}/metaData/$udid.json
 
@@ -613,7 +618,13 @@ export udid_position=2
     udid=$1
     #echo udid: $udid
     if [ "$udid" != "" ]; then
-      export pids=`ps -eaf | grep ${udid} | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
+      . ./configs/getDeviceArgs.sh $udid
+      # Kill the Appium server for this device matched strictly by its unique appium port,
+      # plus the recording watcher tied to this udid. Avoid the loose `grep appium | grep $udid`
+      # which also matches the WDA xcodebuild (path contains "appium-xcuitest-driver").
+      export pids=`ps -eaf | grep -v grep | grep -- "--port ${device_appium_port}" | grep -i appium | awk '{ print $2 }'`
+      export watcher_pids=`ps -eaf | grep -v grep | grep 'mac-recording-watcher.sh' | grep ${udid} | awk '{ print $2 }'`
+      export pids="$pids $watcher_pids"
       rm -fv ${metaDataFolder}/${udid}.json
     else
       export pids=`ps -eaf | grep 'appium' | grep -v grep | grep -v stop-appium | grep -v '/stf' | grep -v '/usr/share/maven' | grep -v 'WebDriverAgent' | awk '{ print $2 }'`
@@ -846,9 +857,13 @@ export udid_position=2
     return -1
   }
 
+  log() {
+    echo "[$(date +'%d/%m/%Y %H:%M:%S')] $*"
+  }
+
   echo_warning() {
     echo "
-      WARNING! $1"
+      [$(date +'%d/%m/%Y %H:%M:%S')] WARNING! $1"
   }
 
   echo_telegram() {
