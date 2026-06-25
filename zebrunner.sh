@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -l
 
 BASEDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd ${BASEDIR}
@@ -314,7 +314,7 @@ export udid_position=2
       echo "[$(date +'%d/%m/%Y %H:%M:%S')] Starting WebDriverAgent application on port $WDA_PORT"
       #echo TODO: replace by xcodebuild
       #echo ios runwda --bundleid=$device_wda_bundle_id --testrunnerbundleid=$device_wda_bundle_id --xctestconfig=${schema}.xctest \
-        --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
+      #  --env USE_PORT=$WDA_PORT --env MJPEG_SERVER_PORT=$MJPEG_PORT --env UITEST_DISABLE_ANIMATIONS=YES --udid $udid &
 
       /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project ${device_wda_home}/WebDriverAgent.xcodeproj -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
         -scheme $schema -destination id=$udid USE_PORT=$WDA_PORT MJPEG_SERVER_PORT=$MJPEG_PORT test
@@ -338,15 +338,35 @@ export udid_position=2
         fi
         echo "WDA still wasn't found on port $device_wda_port. Will attempt to start it"
         
-        export SIMCTL_CHILD_USE_PORT=$device_wda_port
-        export SIMCTL_CHILD_MJPEG_SERVER_PORT=$device_mjpeg_port
-        export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
+        # export SIMCTL_CHILD_USE_PORT=$device_wda_port
+        # export SIMCTL_CHILD_MJPEG_SERVER_PORT=$device_mjpeg_port
+        # export SIMCTL_CHILD_UITEST_DISABLE_ANIMATIONS=YES
+# 
+        # echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
+        # xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
+        echo xcodebuild \
+          -project /Users/alexey.khursevich/.nvm/versions/node/v20.20.2/lib/node_modules/appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
+          -scheme WebDriverAgentRunner \
+          -destination "id=${udid}" \
+          -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
+          -allowProvisioningUpdates \
+          USE_PORT=$device_wda_port \
+          MJPEG_SERVER_PORT=$device_mjpeg_port \
+          UITEST_DISABLE_ANIMATIONS=1 \
+          test &
+        xcodebuild \
+          -project /Users/alexey.khursevich/.nvm/versions/node/v20.20.2/lib/node_modules/appium/node_modules/appium-xcuitest-driver/node_modules/appium-webdriveragent/WebDriverAgent.xcodeproj \
+          -scheme WebDriverAgentRunner \
+          -destination "id=${udid}" \
+          -derivedDataPath "${BASEDIR}/tmp/DerivedData/${udid}" \
+          -allowProvisioningUpdates \
+          USE_PORT=$device_wda_port \
+          MJPEG_SERVER_PORT=$device_mjpeg_port \
+          UITEST_DISABLE_ANIMATIONS=1 \
+          test &
 
-        echo xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id}
-        xcrun simctl launch --console --terminate-running-process ${udid} ${device_wda_bundle_id} &
-
-        echo "Will sleep for 1 minute"
-        sleep 60
+        echo "Will sleep for 3 minutes"
+        sleep 180
         if check-wda $device_wda_port; then
           echo "WDA is accessible on port $device_wda_port"
 
@@ -432,18 +452,16 @@ export udid_position=2
 
 	# extra config for setting up of nvm path
     USER_NAME=$(whoami)
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
-    [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-    nvm use 18
-    source ~/.bash_profile
+    # export NVM_DIR="$HOME/.nvm"
+    # [ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+    # [ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+    nvm use 20
+    # source ~/.bash_profile
     echo "ENV Path: $PATH"
     #xvfb-run appium --log-no-colors --log-timestamp -pa /wd/hub --port $APPIUM_PORT --log $TASK_LOG --log-level $LOG_LEVEL $APPIUM_CLI $plugins_cli
     echo "Starting Appium 2.19.0 for udid=$udid"
-    # path were appium drivers are installed
-    export APPIUM_HOME=/Users/${USER_NAME}/tools/appium_2_19_0
-	export APPIUM_APPS_CACHE_IGNORE_URL_QUERY=1
-    nohup node ${APPIUM_HOME}/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
+    export APPIUM_APPS_CACHE_IGNORE_URL_QUERY=1
+    nohup appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
     --session-override \
     --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
     --default-capabilities \
@@ -925,7 +943,7 @@ case "$1" in
         ;;
     restart)
         if [ -z $2 ]; then
-		  echo "cleaning up old appium sessions"
+          echo "cleaning up old appium sessions"
           pkill -f appium
           stop
           start
