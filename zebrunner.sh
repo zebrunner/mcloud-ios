@@ -925,6 +925,8 @@ case "$1" in
         ;;
     restart)
         if [ -z $2 ]; then
+		  echo "cleaning up old appium sessions"
+          pkill -f appium
           stop
           start
         else
