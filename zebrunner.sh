@@ -442,6 +442,7 @@ export udid_position=2
     echo "Starting Appium 2.19.0 for udid=$udid"
     # path were appium drivers are installed
     export APPIUM_HOME=/Users/${USER_NAME}/tools/appium_2_19_0
+	export APPIUM_APPS_CACHE_IGNORE_URL_QUERY=1
     nohup node ${APPIUM_HOME}/node_modules/appium --log-no-colors --log-timestamp -pa /wd/hub --port ${device_appium_port} --log-level info \
     --session-override \
     --tmp "${BASEDIR}/tmp/AppiumData/${udid}" \
