@@ -68,6 +68,11 @@ TRANSCODE_CRF=${TRANSCODE_CRF:-31}
 TRANSCODE_PRESET=${TRANSCODE_PRESET:-medium}
 SIMCTL_NICE=${SIMCTL_NICE:-10}
 MAX_RECORDING_SECONDS=${MAX_RECORDING_SECONDS:-1800}
+# Disk retention/pressure controls (shared across all watchers via single artifacts dir)
+RETENTION_MAX_AGE_MIN=${RETENTION_MAX_AGE_MIN:-1440}   # delete resulted/raw artifacts older than N minutes (default 24h)
+RETENTION_SWEEP_INTERVAL=${RETENTION_SWEEP_INTERVAL:-300} # seconds between retention sweeps
+MIN_FREE_GB=${MIN_FREE_GB:-20}                          # block new recordings below this free space
+PURGE_OLDEST_ON_PRESSURE=${PURGE_OLDEST_ON_PRESSURE:-true} # drop oldest artifacts when below MIN_FREE_GB
 
 # !!!!!! SET ACTUAL STATE_DIR/ARTIFACTS_DIR HERE !!!!!!
 # Use per-UDID state directory to avoid conflicts across simultaneous watchers
@@ -214,9 +219,37 @@ unmark_started_session() {
   sed -i '' "/^${id//\//\\/}$/d" "$STARTED_FILE" 2>/dev/null || true
 }
 
+# Free space on the artifacts volume, in whole GB
+free_disk_gb() {
+  df -g "$ARTIFACTS_DIR" 2>/dev/null | awk 'NR==2 {print $4}'
+}
+
+# Ensure at least MIN_FREE_GB available; optionally drop oldest artifacts to reclaim space
+ensure_disk_space() {
+  local free
+  free=$(free_disk_gb)
+  [ -n "$free" ] || return 0
+  if [ "$free" -ge "$MIN_FREE_GB" ]; then
+    return 0
+  fi
+  log_warn "Low disk: ${free}GB free (< ${MIN_FREE_GB}GB)"
+  if [ "$PURGE_OLDEST_ON_PRESSURE" != "true" ]; then
+    return 0
+  fi
+  # Delete oldest resulted session folders until above threshold
+  local d
+  for d in $(ls -dt "$ARTIFACTS_DIR"/resulted/*/*/ 2>/dev/null | tail -r); do
+    free=$(free_disk_gb)
+    [ -n "$free" ] && [ "$free" -ge "$MIN_FREE_GB" ] && break
+    log_warn "Disk pressure: removing oldest artifact $d"
+    rm -rf "$d" 2>/dev/null || true
+  done
+}
+
 start_recording() {
   local rec_id="$1"
   log_info "Starting simulator recording for $rec_id (UDID=${TARGET_UDID})"
+  ensure_disk_space
 
   # Ensure target simulator is Booted
   local dev_line
@@ -536,6 +569,24 @@ run_transcoder_worker() {
   done
 }
 
+# Background retention worker: purge stale artifacts to keep disk bounded
+run_retention_worker() {
+  log_info "Starting retention worker (max_age=${RETENTION_MAX_AGE_MIN}min interval=${RETENTION_SWEEP_INTERVAL}s min_free=${MIN_FREE_GB}GB)"
+  while true; do
+    # Purge fully-finished sessions older than max age
+    find "$ARTIFACTS_DIR/resulted" -mindepth 2 -maxdepth 2 -type d -mmin +"$RETENTION_MAX_AGE_MIN" -exec rm -rf {} + 2>/dev/null || true
+    # Purge stranded raw captures and markers older than max age
+    find "$ARTIFACTS_DIR" -maxdepth 1 -type f \( -name '*.mp4' -o -name '.artifact-*' \) -mmin +"$RETENTION_MAX_AGE_MIN" -delete 2>/dev/null || true
+    sleep "$RETENTION_SWEEP_INTERVAL"
+  done
+}
+
+start_retention_worker() {
+  ( run_retention_worker ) &
+  RETENTION_WORKER_PID=$!
+  log_info "Retention worker started with pid $RETENTION_WORKER_PID"
+}
+
 # Transcoder worker loop in background
 start_transcoder_worker() {
   (
@@ -608,6 +659,11 @@ terminate_all() {
     fi
   fi
 
+  # Stop retention worker if running
+  if [ -n "${RETENTION_WORKER_PID:-}" ] && ps -p "$RETENTION_WORKER_PID" > /dev/null 2>&1; then
+    kill -TERM "$RETENTION_WORKER_PID" 2>/dev/null || true
+  fi
+
   # Cleanup pid files
   rm -f "$TRANSCODER_WORKER_PID_FILE" "$TRANSCODER_CHILD_PIDS_FILE" "$TAIL_PIDS_FILE" 2>/dev/null || true
   log_info "All recordings stopped. Exiting."
@@ -620,6 +676,7 @@ trap 'terminate_all; exit 0' SIGINT SIGTERM EXIT
 log_info "Watching LOG_FILE: $LOG_FILE"
 kill_existing_watchers_for_udid
 start_transcoder_worker
+start_retention_worker
 scan_and_tail_logs
 # Report tailed files count
 tailed_count=$(wc -l < "$TAILED_LIST_FILE" 2>/dev/null || echo 0)
