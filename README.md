@@ -41,6 +41,55 @@ Phone_X1         | 7643aa9bd1638255f48ca6beac4285cae4f6454g | com.facebook.WebDr
 
 * Execute `./zebrunner.sh` to see all available actions
 
+## Health monitor and auto-reboot
+
+Long regression runs on a host with several simulators, Appium servers, Docker
+containers and native screen recording gradually exhaust RAM/swap until the host
+becomes unresponsive and drops off the grid/STF. A background health monitor
+(`health-monitor.sh`, installed as the `ZebrunnerHealthMonitor` LaunchAgent
+during `./zebrunner.sh setup`) prevents this:
+
+1. It samples memory/swap pressure on an interval.
+2. When the host stays unhealthy for several samples it enters **drain** mode:
+   new sessions are blocked (idle Appium nodes are killed so the grid stops
+   routing to them) while sessions already in progress are allowed to finish.
+3. Once there are no active sessions **and** all screen recording/transcoding is
+   done, it reboots the host. After reboot every service auto-starts via the
+   existing LaunchAgents, so a well-timed reboot restores a clean environment.
+
+The drain flag is boot-time-aware, so a flag left over from before the reboot is
+automatically ignored and services are never blocked from starting afterwards.
+
+Configuration (in `.env`):
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `HEALTH_ENABLED` | `true` | Master switch for the monitor |
+| `HEALTH_CHECK_INTERVAL` | `60` | Seconds between samples |
+| `HEALTH_MIN_UPTIME_MIN` | `30` | Grace period after boot before it may act |
+| `HEALTH_UNHEALTHY_STREAK` | `3` | Consecutive unhealthy samples before draining |
+| `HEALTH_SWAP_USED_MAX_MB` | `6144` | Swap used ≥ this ⇒ unhealthy (`0` disables) |
+| `HEALTH_MEM_FREE_MIN_PCT` | `8` | Available RAM ≤ this % ⇒ unhealthy (`0` disables) |
+| `HEALTH_DRAIN_TIMEOUT` | `1800` | Force reboot after draining this long (stuck session safety valve) |
+| `HEALTH_REBOOT_CMD` | `sudo /sbin/shutdown -r now` | Command used to reboot |
+
+Prerequisites:
+
+* Auto-login must be enabled (see above) so LaunchAgents reload after the reboot.
+* The reboot must run **without a password prompt**. Grant passwordless sudo for
+  `shutdown`, e.g. add a file `/etc/sudoers.d/zebrunner-reboot` (via `sudo visudo -f`):
+
+  ```
+  <your-user> ALL=(root) NOPASSWD: /sbin/shutdown
+  ```
+
+Manual controls / observability:
+
+* `./zebrunner.sh health` — print current memory/swap health and drain state
+* `./zebrunner.sh drain` — manually drain and reboot once the host is idle
+* `./zebrunner.sh undrain` — cancel a pending drain
+* Monitor activity is logged to `logs/health-monitor.log`
+
 ## Documentation and free support
 * [Zebrunner PRO](https://zebrunner.com)
 * [Zebrunner CE](https://zebrunner.github.io/community-edition)

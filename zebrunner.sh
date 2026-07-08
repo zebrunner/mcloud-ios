@@ -14,6 +14,9 @@ if [ ! -d "${BASEDIR}/metaData" ]; then
     mkdir -p "${BASEDIR}/metaData"
 fi
 
+# shared helpers for host health monitor / graceful drain (defines is_drain_active, etc.)
+source configs/health-common.sh
+
 # udid position in devices.txt to be able to read by sync scripts
 export udid_position=2
 
@@ -52,6 +55,11 @@ export udid_position=2
       launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
     fi
 
+    # unload Health Monitor script if any to avoid restarts during setup
+    if [[ -r $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist ]]; then
+      launchctl unload $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist > /dev/null 2>&1
+    fi
+
     echo 
 
     cd "${BASEDIR}"
@@ -61,6 +69,11 @@ export udid_position=2
     replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "working_dir_value" "${BASEDIR}"
     replace $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist "user_value" "$USER"
     # load asap to be able to start services after whitelisted device connect
+
+    # register host health monitor (memory/swap pressure -> graceful drain -> reboot)
+    cp LaunchAgents/ZebrunnerHealthMonitor.plist $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist
+    replace $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist "working_dir_value" "${BASEDIR}"
+    replace $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist "user_value" "$USER"
 
     #Configure LaunchAgent service per each device for fast recovery
     while read -r line
@@ -118,6 +131,10 @@ export udid_position=2
 
 
     rm -f $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist
+
+    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist > /dev/null 2>&1
+    rm -f $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist
+    clear_drain
 
     # remove configuration files and LaunchAgents plist(s)
     git checkout -- devices.txt
@@ -212,6 +229,9 @@ export udid_position=2
       exit -1
     fi
 
+    # A manual start overrides any in-progress drain.
+    clear_drain
+
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -232,6 +252,11 @@ export udid_position=2
 
     launchctl load $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
+    # (re)load host health monitor if it is installed and enabled
+    if [ -f $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist ] && [ "${HEALTH_ENABLED:-true}" = "true" ]; then
+      launchctl load $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist > /dev/null 2>&1
+    fi
+
     echo "Verify startup status using './zebrunner.sh status'"
     exit 0
   }
@@ -246,6 +271,14 @@ export udid_position=2
     udid=$1
 
     . ./configs/getDeviceArgs.sh $udid
+
+    # Drain guard: while the host is draining for a maintenance reboot we must
+    # NOT (re)start services, otherwise the recovery LaunchAgent would resurrect
+    # Appium nodes that were just deregistered and the host would never go idle.
+    if is_drain_active; then
+      echo "[$(date +'%d/%m/%Y %H:%M:%S')] [drain] Host is draining for a maintenance reboot; skip starting services for $DEVICE_NAME ($DEVICE_UDID)." >> ${DEVICE_LOG} 2>&1
+      return 0
+    fi
 
     if [ -n "$device" ]; then
       echo "$DEVICE_NAME ($DEVICE_UDID)" >> ${DEVICE_LOG} 2>&1
@@ -524,6 +557,10 @@ export udid_position=2
 
     launchctl unload $HOME/Library/LaunchAgents/ZebrunnerDevicesManager.plist > /dev/null 2>&1
 
+    # stop health monitor and clear any active drain so a later start is not blocked
+    launchctl unload $HOME/Library/LaunchAgents/ZebrunnerHealthMonitor.plist > /dev/null 2>&1
+    clear_drain
+
     wait
     echo "MCloud services stopped."
 
@@ -612,6 +649,8 @@ export udid_position=2
       exit -1
     fi
 
+    health
+
     # verify one by one connected devices and authorized simulators
     while read -r line
     do
@@ -627,6 +666,37 @@ export udid_position=2
     done < ${devices}
 
     wait
+  }
+
+  health() {
+    # Print current host health / drain state (used by 'status' and 'health').
+    local drain_state="off"
+    if is_drain_active; then
+      drain_state="ON (draining for reboot; started $(date -r "$(drain_started_epoch)" '+%Y-%m-%d %H:%M:%S' 2>/dev/null))"
+    fi
+    if is_host_unhealthy; then
+      echo "Host health: UNHEALTHY (${HEALTH_LAST}; ${HEALTH_REASON}) | uptime=$(uptime_minutes)min | drain=${drain_state}"
+    else
+      echo "Host health: healthy (${HEALTH_LAST}) | uptime=$(uptime_minutes)min | drain=${drain_state}"
+    fi
+    # Safe, non-executing check that the reboot command can run without a password.
+    if ! sudo -n -l /sbin/shutdown >/dev/null 2>&1; then
+      echo_warning "Passwordless sudo for /sbin/shutdown is NOT configured; auto-reboot will fail. See README (Health monitor)."
+    fi
+  }
+
+  drain() {
+    # Manually put the host into drain mode (block new sessions, reboot when idle).
+    is_host_unhealthy >/dev/null 2>&1
+    HEALTH_REASON="${HEALTH_REASON:-manual}"
+    set_drain
+    echo "Drain enabled. New sessions are blocked; host will reboot once all sessions end and recordings finish."
+    echo "Monitor progress in logs/health-monitor.log. Cancel with './zebrunner.sh undrain'."
+  }
+
+  undrain() {
+    clear_drain
+    echo "Drain cleared. Run './zebrunner.sh start' (or wait for the recovery agents) to resume services."
   }
 
   status-device() {
@@ -852,6 +922,9 @@ export udid_position=2
           shutdown            Destroy Device Farm iOS agent completely
           backup              Backup Device Farm iOS agent services
           restore             Restore Device Farm iOS agent services
+          health              Show host memory/swap health and drain state
+          drain               Block new sessions and reboot the host once idle (manual maintenance)
+          undrain             Cancel an active/queued drain
           version             Version of Device Farm iOS agent"
       echo_telegram
       exit 0
@@ -955,6 +1028,15 @@ case "$1" in
         ;;
     listen)
         listen
+        ;;
+    health)
+        health
+        ;;
+    drain)
+        drain
+        ;;
+    undrain)
+        undrain
         ;;
     version)
         version
