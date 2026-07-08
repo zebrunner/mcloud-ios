@@ -71,13 +71,32 @@ Configuration (in `.env`):
 | `HEALTH_SWAP_USED_MAX_MB` | `6144` | Swap used ≥ this ⇒ unhealthy (`0` disables) |
 | `HEALTH_MEM_FREE_MIN_PCT` | `8` | Available RAM ≤ this % ⇒ unhealthy (`0` disables) |
 | `HEALTH_DRAIN_TIMEOUT` | `1800` | Force reboot after draining this long (stuck session safety valve) |
-| `HEALTH_REBOOT_CMD` | `sudo /sbin/shutdown -r now` | Command used to reboot |
+| `HEALTH_REBOOT_CMD` | `/usr/bin/touch ${BASEDIR}/metaData/.reboot-request` | How the monitor triggers a reboot |
+
+Reboot without sudo (recommended):
+
+The monitor runs as a user LaunchAgent and does **not** perform the reboot
+itself — it only writes a reboot-request flag once the host is drained. A
+separate root job (`scheduled-reboot.sh`, invoked from a root crontab or
+LaunchDaemon every minute) consumes that flag and runs `/sbin/shutdown -r now`
+as root. Because that job is already privileged, no passwordless sudo is needed
+for the agent. `scheduled-reboot.sh` also keeps a nightly maintenance reboot as a
+time-based safety net.
+
+* Install `scheduled-reboot.sh` in your existing root scheduler, e.g. root crontab:
+
+  ```
+  * * * * * /path/to/mcloud-ios/scheduled-reboot.sh >/dev/null 2>&1
+  ```
 
 Prerequisites:
 
 * Auto-login must be enabled (see above) so LaunchAgents reload after the reboot.
-* The reboot must run **without a password prompt**. Grant passwordless sudo for
-  `shutdown`, e.g. add a file `/etc/sudoers.d/zebrunner-reboot` (via `sudo visudo -f`):
+* The root scheduler running `scheduled-reboot.sh` must be in place (as above).
+
+Alternative (no root job): set `HEALTH_REBOOT_CMD="sudo /sbin/shutdown -r now"`
+and grant passwordless sudo for `shutdown` via `/etc/sudoers.d/zebrunner-reboot`
+(add with `sudo visudo -f`):
 
   ```
   <your-user> ALL=(root) NOPASSWD: /sbin/shutdown

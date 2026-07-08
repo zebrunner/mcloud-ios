@@ -679,9 +679,15 @@ export udid_position=2
     else
       echo "Host health: healthy (${HEALTH_LAST}) | uptime=$(uptime_minutes)min | drain=${drain_state}"
     fi
-    # Safe, non-executing check that the reboot command can run without a password.
-    if ! sudo -n -l /sbin/shutdown >/dev/null 2>&1; then
-      echo_warning "Passwordless sudo for /sbin/shutdown is NOT configured; auto-reboot will fail. See README (Health monitor)."
+    # Safe, non-executing check that the configured reboot path can actually fire.
+    if echo "${HEALTH_REBOOT_CMD}" | grep -q 'sudo'; then
+      if ! sudo -n -l /sbin/shutdown >/dev/null 2>&1; then
+        echo_warning "Passwordless sudo for /sbin/shutdown is NOT configured; auto-reboot will fail. See README (Health monitor)."
+      fi
+    elif echo "${HEALTH_REBOOT_CMD}" | grep -q 'reboot-request'; then
+      if [ ! -x "${BASEDIR}/scheduled-reboot.sh" ]; then
+        echo_warning "scheduled-reboot.sh is missing/not executable; the root scheduler cannot consume reboot requests. See README (Health monitor)."
+      fi
     fi
   }
 
