@@ -215,19 +215,51 @@ deregister_idle_appium() {
   fi
 }
 
+# Stop any screen recording still running for a udid whose Appium we just killed.
+# Killing Appium means the session never emits DELETE /session, so the recording
+# watcher would never stop these -> they leak and keep the host from going idle.
+# SIGINT lets simctl finalize the mp4 cleanly; force-kill any straggler.
+stop_orphaned_recordings() {
+  local udid="$1"
+  [ -n "$udid" ] || return 0
+  local pids i
+  pids="$(pgrep -f "simctl io ${udid} recordVideo" 2>/dev/null)"
+  if [ -n "$pids" ]; then
+    hc_log "Stopping orphaned recording(s) for ${udid} during drain (pids: $(echo $pids | tr '\n' ' '))"
+    kill -INT $pids 2>/dev/null || true
+    i=0
+    while [ $i -lt 10 ] && pgrep -f "simctl io ${udid} recordVideo" >/dev/null 2>&1; do
+      sleep 0.5
+      i=$((i + 1))
+    done
+    pids="$(pgrep -f "simctl io ${udid} recordVideo" 2>/dev/null)"
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+  fi
+  # drop this udid's now-abandoned recording bookkeeping so drain can complete
+  rm -f "${BASEDIR}/recording/tmp/${udid}"/rec-*.pid \
+        "${BASEDIR}/recording/tmp/${udid}"/rec-*.timeout.pid 2>/dev/null || true
+}
+
 # True (0) when any screen recording or video transcoding is still in progress.
 recording_in_progress() {
   # Active simulator screen recording
   pgrep -f 'simctl io .* recordVideo' >/dev/null 2>&1 && return 0
   # Active transcoding
   pgrep -f 'ffmpeg' >/dev/null 2>&1 && return 0
-  # Pending transcode jobs or in-flight recordings tracked by the watcher
-  local f
+  # Pending transcode jobs tracked by the watcher
+  local f rpid
   for f in "${BASEDIR}"/recording/tmp/*/transcoder-jobs-*.list; do
     [ -f "$f" ] && [ -s "$f" ] && return 0
   done
+  # In-flight recordings: trust a pid file only if its process is actually alive
+  # (stale pid files from crashed/killed watchers must not block reboot forever).
   for f in "${BASEDIR}"/recording/tmp/*/rec-*.pid; do
-    [ -f "$f" ] && return 0
+    [ -f "$f" ] || continue
+    case "$f" in *.timeout.pid) continue ;; esac
+    rpid="$(cat "$f" 2>/dev/null)"
+    if [ -n "$rpid" ] && ps -p "$rpid" >/dev/null 2>&1; then
+      return 0
+    fi
   done
   return 1
 }
