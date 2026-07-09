@@ -42,9 +42,17 @@ export DRAIN_FLAG="${BASEDIR}/metaData/.drain"
 : "${HEALTH_DRAIN_TIMEOUT:=1800}"      # force reboot after draining this long (seconds)
 : "${HEALTH_REBOOT_CMD:=sudo /sbin/shutdown -r now}"
 
+# Session-creation-failure signal: detect an environment that reports healthy RAM
+# but can no longer create Appium sessions (e.g. simulator cfprefsd out of file
+# descriptors -> "Could not write domain ... exiting" -> POST /session 500).
+: "${HEALTH_SESSION_FAIL_ENABLED:=true}"
+: "${HEALTH_SESSION_FAIL_MIN:=6}"      # last N session-create results all failed => unhealthy
+: "${HEALTH_SESSION_TAIL_LINES:=6000}" # how many trailing appium-log lines to scan per device
+
 # Cross-call scratch values populated by is_host_unhealthy().
 export HEALTH_LAST=""
 export HEALTH_REASON=""
+export HEALTH_SESSION_INFO=""
 
 hc_timestamp() { date "+%Y-%m-%dT%H:%M:%S%z"; }
 
@@ -160,12 +168,41 @@ is_host_unhealthy() {
     if [ -n "$reasons" ]; then reasons="${reasons}, "; fi
     reasons="${reasons}free_ram=${free_pct}%<=${HEALTH_MEM_FREE_MIN_PCT}%"
   fi
+  # Environment can report healthy RAM yet be unable to create sessions.
+  if session_creation_failing; then
+    if [ -n "$reasons" ]; then reasons="${reasons}, "; fi
+    reasons="${reasons}session_creation_failing (${HEALTH_SESSION_INFO})"
+  fi
 
   if [ -n "$reasons" ]; then
     HEALTH_REASON="$reasons"
     return 0
   fi
   HEALTH_REASON=""
+  return 1
+}
+
+# True (0) when at least one device's most recent session-creation attempts all
+# failed. Signature of simulator/cfprefsd degradation that leaves RAM untouched.
+# Only flags a device that actually attempted HEALTH_SESSION_FAIL_MIN sessions
+# recently and got zero 2xx among them, so idle devices never trip it.
+session_creation_failing() {
+  HEALTH_SESSION_INFO=""
+  [ "${HEALTH_SESSION_FAIL_ENABLED}" = "true" ] || return 1
+  local f results count k="${HEALTH_SESSION_FAIL_MIN}"
+  for f in "${BASEDIR}"/logs/appium-*.log; do
+    [ -f "$f" ] || continue
+    # last k HTTP response codes for POST /wd/hub/session in the recent tail
+    results="$(tail -n "${HEALTH_SESSION_TAIL_LINES}" "$f" 2>/dev/null \
+      | grep -Eo 'POST /wd/hub/session [0-9]{3}' | awk '{print $NF}' | tail -n "$k")"
+    count="$(printf '%s\n' "$results" | grep -c .)"
+    [ "$count" -ge "$k" ] || continue
+    # none of the last k attempts succeeded (2xx) -> this device is broken
+    if ! printf '%s\n' "$results" | grep -q '^2'; then
+      HEALTH_SESSION_INFO="$(basename "$f" | sed 's/^appium-//; s/\.log$//')=last${k}_failed"
+      return 0
+    fi
+  done
   return 1
 }
 

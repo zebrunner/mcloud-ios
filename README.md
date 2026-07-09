@@ -72,6 +72,29 @@ Configuration (in `.env`):
 | `HEALTH_MEM_FREE_MIN_PCT` | `8` | Available RAM ≤ this % ⇒ unhealthy (`0` disables) |
 | `HEALTH_DRAIN_TIMEOUT` | `1800` | Force reboot after draining this long (stuck session safety valve) |
 | `HEALTH_REBOOT_CMD` | `/usr/bin/touch ${BASEDIR}/metaData/.reboot-request` | How the monitor triggers a reboot |
+| `HEALTH_SESSION_FAIL_ENABLED` | `true` | Also drain/reboot when sessions can't be created (even if RAM is fine) |
+| `HEALTH_SESSION_FAIL_MIN` | `6` | A device's last N `POST /session` all failing ⇒ unhealthy |
+| `HEALTH_SESSION_TAIL_LINES` | `6000` | Trailing Appium-log lines scanned per device for the check above |
+
+### Required: raise the open-file limit (`limit.maxfiles`)
+
+macOS defaults the per-process open-file soft limit to **256**. Every booted
+simulator's `cfprefsd` inherits it and, during long regression runs, accumulates
+descriptors until it hits 256. After that, any `defaults write` to that simulator
+fails with `Could not write domain ... exiting` and Appium can no longer create
+sessions (`POST /session 500`) — while RAM/swap still look perfectly healthy. The
+health monitor will detect this and reboot (see `HEALTH_SESSION_FAIL_*`), but the
+real fix is to raise the limit so it never happens:
+
+```bash
+sudo cp configs/limit.maxfiles.plist /Library/LaunchDaemons/limit.maxfiles.plist
+sudo chown root:wheel /Library/LaunchDaemons/limit.maxfiles.plist
+sudo chmod 644        /Library/LaunchDaemons/limit.maxfiles.plist
+sudo launchctl bootstrap system /Library/LaunchDaemons/limit.maxfiles.plist
+sudo reboot   # required so launchd_sim/cfprefsd inherit the new limit
+# verify after reboot:
+launchctl limit maxfiles      # -> 65536 65536
+```
 
 Reboot without sudo (recommended):
 
