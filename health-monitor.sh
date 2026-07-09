@@ -70,6 +70,9 @@ run_drain_step() {
     else
       idle=$((idle + 1))
       deregister_idle_appium "$udid"
+      # its session can no longer emit DELETE /session, so finalize any recording
+      # left running for this udid instead of leaking it and blocking the reboot.
+      stop_orphaned_recordings "$udid"
     fi
   done < <(list_device_udid_port)
 

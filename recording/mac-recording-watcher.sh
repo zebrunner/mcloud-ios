@@ -377,6 +377,42 @@ stop_recording() {
   unmark_started_session "$rec_id"
 }
 
+# Each simulator is maxSession=1, so at most ONE recording should ever be active
+# for this udid. When a new session begins, any session still marked "started" is
+# orphaned (its DELETE /session was never observed: newCommandTimeout, client
+# crash, Appium restart, etc.) and must be stopped, otherwise simctl recordVideo
+# processes accumulate and exhaust memory.
+stop_prior_recordings() {
+  local keep="$1"
+  if [ -s "$STARTED_FILE" ]; then
+    local prev
+    # snapshot the list first: stop_recording() mutates STARTED_FILE
+    while IFS= read -r prev; do
+      [ -n "$prev" ] || continue
+      [ "$prev" = "$keep" ] && continue
+      log_warn "Orphaned prior recording $prev for ${TARGET_UDID}; stopping before starting $keep"
+      stop_recording "$prev"
+    done < <(cat "$STARTED_FILE")
+  fi
+}
+
+# Stop recordings left running by a previous watcher instance (its state files
+# were reset on restart, so those simctl processes are now untracked). Called
+# once at startup to reclaim leaked recordings.
+cleanup_preexisting_recordings() {
+  local pids
+  pids="$(pgrep -f "simctl io ${TARGET_UDID} recordVideo" 2>/dev/null)"
+  if [ -n "$pids" ]; then
+    log_warn "Startup: stopping $(echo $pids | wc -w | tr -d ' ') orphaned recording(s) for ${TARGET_UDID} from a previous run"
+    kill -INT $pids 2>/dev/null || true
+    sleep 2
+    pids="$(pgrep -f "simctl io ${TARGET_UDID} recordVideo" 2>/dev/null)"
+    [ -n "$pids" ] && kill -9 $pids 2>/dev/null || true
+  fi
+  # drop stale bookkeeping so recording_in_progress()/status checks stay accurate
+  rm -f "$STATE_DIR"/rec-*.pid "$STATE_DIR"/rec-*.timeout.pid 2>/dev/null || true
+}
+
 extract_session_id_from_line() {
   local line="$1"
   # Only accept: "Session created with session id: <uuid>"
@@ -403,6 +439,8 @@ handle_line() {
     debug_log "Matched session-created trigger; extracted sessionId: ${sid:-<none>}"
     if [ -n "$sid" ]; then
       if ! is_started_session "$sid"; then
+        # cap at one recording per simulator: stop any orphaned prior session
+        stop_prior_recordings "$sid"
         log_info "Detected session id $sid; starting recording"
         start_recording "$sid"
       else
@@ -675,6 +713,7 @@ trap 'terminate_all; exit 0' SIGINT SIGTERM EXIT
 
 log_info "Watching LOG_FILE: $LOG_FILE"
 kill_existing_watchers_for_udid
+cleanup_preexisting_recordings
 start_transcoder_worker
 start_retention_worker
 scan_and_tail_logs
