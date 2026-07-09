@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+	"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Raises the per-process open-file (RLIMIT_NOFILE) soft/hard limit for every
+  process launched by launchd, including each iOS Simulator's launchd_sim and
+  its cfprefsd.
+
+  Why this is required for a simulator farm:
+    macOS ships a soft maxfiles limit of 256. Every booted simulator's cfprefsd
+    inherits it. During long regression runs cfprefsd accumulates preference
+    clients/descriptors and eventually hits 256 open files. Once capped, any
+    `defaults write` to that simulator fails with
+        "Could not write domain ...; exiting"
+    and Appium can no longer create sessions (POST /session 500) even though RAM
+    and swap look perfectly healthy.
+
+  Install (one-time, as root):
+    sudo cp configs/limit.maxfiles.plist /Library/LaunchDaemons/limit.maxfiles.plist
+    sudo chown root:wheel /Library/LaunchDaemons/limit.maxfiles.plist
+    sudo chmod 644       /Library/LaunchDaemons/limit.maxfiles.plist
+    sudo launchctl bootstrap system /Library/LaunchDaemons/limit.maxfiles.plist
+    # then REBOOT so launchd_sim/cfprefsd for the simulators inherit the new limit
+
+  Verify after reboot:
+    launchctl limit maxfiles      # -> 65536 65536
+-->
+<plist version="1.0">
+	<dict>
+		<key>Label</key>
+		<string>limit.maxfiles</string>
+		<key>ProgramArguments</key>
+		<array>
+			<string>launchctl</string>
+			<string>limit</string>
+			<string>maxfiles</string>
+			<string>65536</string>
+			<string>65536</string>
+		</array>
+		<key>RunAtLoad</key>
+		<true/>
+		<key>ServiceIPC</key>
+		<false/>
+	</dict>
+</plist>
